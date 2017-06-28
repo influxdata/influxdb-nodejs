@@ -3,7 +3,7 @@ let InfluxDB = require('../src/InfluxDB');
 
 function getFieldType(fields, fieldname){
 
-    for( f of fields){
+    for(let f of fields){
 
         if(f.fieldKey == fieldname){
             return f.fieldType;
@@ -462,7 +462,7 @@ describe('InfluxDB.types', function () {
 
                 connection.executeQuery('select * from testbool').then((result) => {
                     assert.equal(result.length, 5);
-                    for (dp of result) {
+                    for (let dp of result) {
                         switch (dp.location) {
                             case 'Turbine0001':
                             case 'Turbine0003':
