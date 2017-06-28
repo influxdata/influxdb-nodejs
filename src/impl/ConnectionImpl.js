@@ -127,19 +127,19 @@ class ConnectionImpl {
                     return '\"'+ConnectionImpl.escapeString(v)+'\"';
                 case FieldType.BOOLEAN:
                     validateType('boolean');
-                    return v ? '1' : '0';
+                    return v ? 'T' : 'F';
                 case FieldType.FLOAT:
                     validateType('number');
                     return ''+v;
                 case FieldType.INTEGER:
                     validateType('number');
-                    if(v!==Math.round(v)) {
+                    if(v!==(~~v)) {
                         throw new Error(`Invalid value supplied for field ${fieldName} of `+
                             `measurement ${dataPoint.measurement}.`+
                             'Should have been an integer but supplied number has a fraction part.' +
                             ' Use Math.round/ceil/floor for conversion.');
                     }
-                    return ''+v;
+                    return v+'i';
                 default:
                     throw new Error('Unsupported value type:'+(typeof v));
             }
