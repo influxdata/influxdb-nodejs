@@ -10,9 +10,11 @@ let ConnectionImpl=require('./impl/ConnectionImpl');
 class Connection {
 
     /**
-     * Create new Connection object. To verify that everything is set correctly, call the {@link Connection#connect} method
+     * Create new Connection object. To verify that everything is set correctly,
+     * call the {@link Connection#connect} method
      *
-     * @param {ConnectionConfiguration} options - all settings needed to connect to Influx DB and configure the communication protocol
+     * @param {ConnectionConfiguration} options - all settings needed to connect
+     * to Influx DB and configure the communication protocol
      * @returns new {@link Connection} object
      */
     constructor(options) {
@@ -20,8 +22,8 @@ class Connection {
     }
 
     /**
-     * Verify the connection to InfluxDB is available. If you won't call this method on your own, it will be called before first write into
-     * InfluxDB automatically.
+     * Verify the connection to InfluxDB is available. If you won't call this method on your own, it will be
+     * called before first write into InfluxDB automatically.
      *
      * @returns {Promise}
      */
@@ -33,6 +35,7 @@ class Connection {
      * Write measurement data points into InfluxDB
      *
      * @param {DataPoint[]} dataPoints - an array of measurement points to write into InfluxDB
+     * @param {Boolean} [forceFlush] - if true the internal data point cache gets flushed into InfluxDB right away
      * @returns {Promise} - a promise that is evaluated when data are either written into InfluxDB or
      * a i/o error occurs. (You have to call Promise.then() method of course)
      * @example
@@ -44,8 +47,8 @@ class Connection {
      * }
      *
      */
-    write(dataPoints) {
-        return this.stub.write(dataPoints);
+    write(dataPoints, forceFlush) {
+        return this.stub.write(dataPoints, forceFlush);
     }
 
     /**

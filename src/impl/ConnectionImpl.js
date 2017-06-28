@@ -213,12 +213,12 @@ class ConnectionImpl {
         }
     }
 
-    write(dataPoints) {
+    write(dataPoints,forceFlush) {
 
         if(!this.connected) {
             return new Promise((resolve, reject) => {
                 this.connect().then(() => {
-                    this.write(dataPoints).then(() => {
+                    this.write(dataPoints,forceFlush).then(() => {
                         resolve();
                     }).catch((e) => {
                         reject(e)
@@ -236,7 +236,7 @@ class ConnectionImpl {
             let timeoutNotLimited=this.options.maximumWriteDelay>0 &&
                 (this.cacheAge===undefined || new Date().getTime()-this.cacheAge<this.options.maximumWriteDelay);
 
-            if(batchSizeNotLimited && timeoutNotLimited) {
+            if(batchSizeNotLimited && timeoutNotLimited && forceFlush!==true) {
 
                 return new Promise((resolve,reject) => {
                     if(this.cache===undefined) {
