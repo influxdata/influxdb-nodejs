@@ -8,6 +8,14 @@ describe('InfluxDB.Connection', function() {
                 database: 'test1'
             });
 
+            /* Test against cloud
+             let connection = new InfluxDB.Connection({
+             hostUrl: 'https://futureboy-bf9e2f8a.influxcloud.net:8086',
+             username: 'admin',
+             password: 'changeit@123',
+             database: 'test1'
+             });*/
+
             connection.connect().then((result) => {
                 done();
             }).catch((e) => {
