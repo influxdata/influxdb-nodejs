@@ -26,7 +26,7 @@ describe('InfluxDB.timestamps', function(){
     // Timestamp type String
     let dpTS3 = {
         measurement: 'powerts',
-        timestamp: testDate,
+        timestamp: testDate, //.toISOString(),
         tags: [{ key: 'location', value: 'Turbine007'}],
         fields: [{ key: 'kwatts', value: 48.33 }]
     };

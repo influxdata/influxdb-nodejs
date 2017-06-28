@@ -1,6 +1,16 @@
-let assert = require('assert')
+let assert = require('assert');
 let InfluxDB = require('../src/InfluxDB');
 
+function getFieldType(fields, fieldname){
+
+    for( f of fields){
+
+        if(f.fieldKey == fieldname){
+            return f.fieldType;
+        }
+    }
+    return false;
+}
 
 describe('InfluxDB.types', function () {
 
@@ -20,7 +30,22 @@ describe('InfluxDB.types', function () {
                 fields: {
                     rpms: InfluxDB.FieldType.INTEGER
                 }
+            },
+            {
+                measurement: 'teststr',
+                tags: ['location'],
+                fields: {
+                    status: InfluxDB.FieldType.STRING
+                }
+            },
+            {
+                measurement: 'testbool',
+                tags: ['location'],
+                fields: {
+                    online: InfluxDB.FieldType.BOOLEAN
+                }
             }
+
 
         ]
 
@@ -56,7 +81,6 @@ describe('InfluxDB.types', function () {
                     connection.flush().then(() => {
                         done();
                     }).catch((e) => {
-                        console.log('ERROR ON FLUSH');
                         done(e);
                     });
 
@@ -67,6 +91,22 @@ describe('InfluxDB.types', function () {
             }).catch((e) => {
                 done(e);
             });
+        });
+
+        it('should verify the field type in Influx', function(done){
+            connection.connect().then(() => {
+
+                connection.executeQuery('SHOW FIELD KEYS').then((result) => {
+
+                    assert.equal(getFieldType(result,'kwatts'), 'float')
+                    done()
+
+                }).catch((e) => {
+                    done(e)
+                });
+
+
+            })
         });
 
         it('should read back the float values', function (done) {
@@ -94,7 +134,6 @@ describe('InfluxDB.types', function () {
                     }
                     done()
                 }).catch((e) => {
-                    console.log('ERROR ON READ BACK');
                     done(e)
                 });
             }).catch((e) => {
@@ -109,7 +148,6 @@ describe('InfluxDB.types', function () {
                 connection.executeQuery('drop measurement powerf').then((result) => {
                     done()
                 }).catch((e) => {
-                    console.log('DROP QUERY EXEC ERROR')
                     done(e)
                 })
 
@@ -155,7 +193,6 @@ describe('InfluxDB.types', function () {
                 fields: [{key: 'rpms', value: Number.MIN_SAFE_INTEGER}] //, type: FieldType.INTEGER}]
             };
 
-            console.log([dPI1, dPI2, dPI3])
             connection.connect().then(() => {
                 connection.write([dPI1, dPI2, dPI3]).then(() => {
                     done()
@@ -169,12 +206,28 @@ describe('InfluxDB.types', function () {
 //N.B. need to check writing a float value to a field already defined as int
         });
 
+        it('should verify the field type in Influx', function(done){
+            connection.connect().then(() => {
+
+                connection.executeQuery('SHOW FIELD KEYS').then((result) => {
+
+                    assert.equal(getFieldType(result,'rpms'), 'integer')
+                    done()
+
+                }).catch((e) => {
+                    done(e)
+                });
+
+
+            })
+        });
+
         it('should read back the integer values', function (done) {
 
             connection.connect().then(() => {
 
                 connection.executeQuery('select * from testint').then((result) => {
-                    //                      console.log(result)
+
                     assert.equal(result.length, 3);
                     for (dp of result) {
                         switch (dp.location) {
@@ -195,7 +248,6 @@ describe('InfluxDB.types', function () {
                     }
                     done()
                 }).catch((e) => {
-                    console.log('ERROR ON READ BACK');
                     done(e)
                 });
 
@@ -211,7 +263,6 @@ describe('InfluxDB.types', function () {
                 connection.executeQuery('drop measurement testint').then((result) => {
                     done()
                 }).catch((e) => {
-                    console.log('DROP QUERY EXEC ERROR');
                     done(e)
                 })
 
@@ -224,31 +275,31 @@ describe('InfluxDB.types', function () {
 
     describe('#Strings', function () {
 
+        let jsonTestStr = '{ type: \'widget\', name: \'kralik\', id: 123456789 }';
+        let qlTestStr = 'SELECT * FROM teststr';
+
+        let dpS1 = {
+            measurement: 'teststr',
+            timestamp: new Date(),
+            tags: [{key: 'location', value: 'Turbine0017'}],
+            fields: [{key: 'status', value: 'OK'}]
+        };
+
+        let dpS2 = {
+            measurement: 'teststr',
+            timestamp: new Date(),
+            tags: [{key: 'location', value: 'Turbine0018'}],
+            fields: [{key: 'status', value: jsonTestStr}]
+        };
+
+        let dpS3 = {
+            measurement: 'teststr',
+            timestamp: new Date(),
+            tags: [{key: 'location', value: 'Turbine0019'}],
+            fields: [{key: 'status', value: qlTestStr}]
+        };
+
         it('should write strings', function (done) {
-
-            let jsonTestStr = '{ type: \'widget\', name: \'kralik\', id: 123456789 }';
-            let qlTestStr = 'SELECT * FROM teststr';
-
-            let dpS1 = {
-                measurement: 'teststr',
-                timestamp: new Date(),
-                tags: [{key: 'location', value: 'Turbine0017'}],
-                fields: [{key: 'status', value: 'OK'}]
-            };
-
-            let dpS2 = {
-                measurement: 'teststr',
-                timestamp: new Date(),
-                tags: [{key: 'location', value: 'Turbine0018'}],
-                fields: [{key: 'status', value: jsonTestStr}]
-            };
-
-            let dpS3 = {
-                measurement: 'teststr',
-                timestamp: new Date(),
-                tags: [{key: 'location', value: 'Turbine0019'}],
-                fields: [{key: 'status', value: qlTestStr}]
-            };
 
             connection.connect().then(() => {
 
@@ -264,6 +315,23 @@ describe('InfluxDB.types', function () {
 
         });
 
+        it('should verify the field type in Influx', function(done){
+            connection.connect().then(() => {
+
+                connection.executeQuery('SHOW FIELD KEYS').then((result) => {
+
+                    assert.equal(getFieldType(result,'status'), 'string')
+                    done()
+
+                }).catch((e) => {
+                    done(e)
+                });
+
+
+            })
+        });
+
+
         it('should read the strings back', function (done) {
 
             connection.connect().then(() => {
@@ -271,16 +339,15 @@ describe('InfluxDB.types', function () {
                 connection.executeQuery('select * from teststr').then((result) => {
                     assert.equal(result.length, 3);
                     for (dp of result) {
-                        console.log("DEBUG " + dp.status);
                         switch (dp.location) {
                             case 'Turbine0017':
                                 assert.equal(dp.status, 'OK');
                                 break;
                             case 'Turbine0018':
-                                assert.equal(dp.status, '{ type: \'widget\', name: \'kralik\', id: 123456789 }');
+                                assert.equal(dp.status, jsonTestStr);
                                 break;
                             case 'Turbine0019':
-                                assert.equal(dp.status, 'SELECT * FROM teststr');
+                                assert.equal(dp.status, qlTestStr);
                                 break;
                             default:
                                 assert.fail(dp.status, dp.location,
@@ -291,7 +358,6 @@ describe('InfluxDB.types', function () {
 
                     done()
                 }).catch((e) => {
-                    console.log('ERROR ON READ BACK');
                     done(e)
                 });
 
@@ -307,7 +373,131 @@ describe('InfluxDB.types', function () {
                 connection.executeQuery('drop measurement teststr').then((result) => {
                     done()
                 }).catch((e) => {
-                    console.log('DROP QUERY EXEC ERROR');
+                    done(e)
+                })
+
+            }).catch((e) => {
+                done(e)
+            });
+
+        })
+
+    })
+
+    describe('#Bools', function(){
+
+        let dpB1 = {
+            measurement: 'testbool',
+            timestamp: new Date(),
+            tags: [{key: 'location', value: 'Turbine0001'}],
+            fields: [{key: 'online', value: true}]
+        };
+
+        let dpB2 = {
+            measurement: 'testbool',
+            timestamp: new Date(),
+            tags: [{key: 'location', value: 'Turbine0002'}],
+            fields: [{key: 'online', value: false}]
+        };
+
+        let dpB3 = {
+            measurement: 'testbool',
+            timestamp: new Date(),
+            tags: [{key: 'location', value: 'Turbine0003'}],
+            fields: [{key: 'online', value: true}] //1}]
+        };
+
+        let dpB4 = {
+            measurement: 'testbool',
+            timestamp: new Date(),
+            tags: [{key: 'location', value: 'Turbine0005'}],
+            fields: [{key: 'online', value: false}] //0}]
+        };
+// This should throw an exeception on write - field should be type bool
+// Need to test and catch this separately as check that field type is bool
+        let dpB5 = {
+            measurement: 'testbool',
+            timestamp: new Date(),
+            tags: [{key: 'location', value: 'Turbine0007'}],
+            fields: [{key: 'online', value: true }] //99}]
+        }
+
+        it('should write booleans', function(done){
+
+                connection.connect().then(() => {
+
+                    connection.write([dpB1, dpB2, dpB3, dpB4, dpB5]).then(() => {
+                        done()
+                    }).catch((e) => {
+                        done(e)
+                    });
+
+                }).catch((e) => {
+                    done(e)
+                });
+
+        })
+
+        it('should verify the field type in Influx', function(done){
+            connection.connect().then(() => {
+
+                connection.executeQuery('SHOW FIELD KEYS').then((result) => {
+
+                    assert.equal(getFieldType(result,'online'), 'boolean')
+                    done()
+
+                }).catch((e) => {
+                    done(e)
+                });
+
+
+            })
+        });
+
+
+        it('should read the booleans back', function (done) {
+
+            connection.connect().then(() => {
+
+                connection.executeQuery('select * from testbool').then((result) => {
+                    assert.equal(result.length, 5);
+                    for (dp of result) {
+                        switch (dp.location) {
+                            case 'Turbine0001':
+                            case 'Turbine0003':
+                            case 'Turbine0007':
+                                assert.equal(dp.online, true);
+                                break;
+                            case 'Turbine0002':
+                            case 'Turbine0005':
+                                assert.equal(dp.online, false);
+                                break;
+                            default:
+                                assert.fail(dp.status, dp.location,
+                                    'unexpected element in results array', ',');
+                                break;
+                        }
+                    }
+
+                    done()
+                }).catch((e) => {
+                    done(e)
+                });
+
+
+
+            }).catch((e) => {
+                done(e)
+            });
+
+        });
+
+        it('should drop the datapoints', function (done) {
+
+            connection.connect().then(() => {
+                connection.executeQuery('drop measurement testbool').then((result) => {
+                    done()
+                }).catch((e) => {
                     done(e)
                 })
 
