@@ -63,8 +63,8 @@ describe('InfluxDB.timestamps', function(){
 
               connection.executeQuery('SELECT * FROM powerts').then((result) => {
                   assert.equal(result.length, 3);
-                  for( dp of result){
-                     td = new Date(dp.time);
+                  for(let dp of result){
+                     let td = new Date(dp.time);
                      assert( td.getTime() == testDate.getTime(), 'Returned time ' + td +
                               ' does not equal original test time ' + testDate +
                                ' ' + dp.location);

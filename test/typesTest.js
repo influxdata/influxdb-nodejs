@@ -75,7 +75,7 @@ describe('InfluxDB.types', function () {
 
                 connection.executeQuery('select * from powerf').then((result) => {
                     assert.equal(result.length, 3);
-                    for (dp of result) {
+                    for (let dp of result) {
                         switch (dp.location) {
                             case 'Turbine0017': //49
                                 assert.equal(dp.kwatts, 49.0);
@@ -176,7 +176,7 @@ describe('InfluxDB.types', function () {
                 connection.executeQuery('select * from testint').then((result) => {
                     //                      console.log(result)
                     assert.equal(result.length, 3);
-                    for (dp of result) {
+                    for (let dp of result) {
                         switch (dp.location) {
                             case 'Turbine0017': //49
                                 assert.equal(dp.rpms, 49);
@@ -270,7 +270,7 @@ describe('InfluxDB.types', function () {
 
                 connection.executeQuery('select * from teststr').then((result) => {
                     assert.equal(result.length, 3);
-                    for (dp of result) {
+                    for (let dp of result) {
                         console.log("DEBUG " + dp.status);
                         switch (dp.location) {
                             case 'Turbine0017':
