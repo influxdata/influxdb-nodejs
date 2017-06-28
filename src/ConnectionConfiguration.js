@@ -26,10 +26,12 @@
  * @property {Boolean} [autoResolvePromisedWritesToCache=true] if true the {@link Promise} returned by
  * {@link InfluxDBConnection.write} will be automatically resolved when the data are put into the batching cache. This is
  *  useful for larger batch sizes for performance reasons and to avoid pollution of log files (there will be just one
- *  error generated for the whole batch). If false the {@link Promise} will get rejected or resolved when the data are
- *  written into InfluxDB.
+ *  error generated for the whole batch on the last accepted {@link InfluxDBConnection.write} invocation).
+ *  If false the {@link Promise} returned by {@link InfluxDBConnection.write} will get always rejected or resolved when
+ *  the data points are written into InfluxDB.
  * @property {function} [batchWriteErrorHandler] handler called when batch write into InfluxDB fails and
- *  autoResolvePromisedWritesToCache configuration property is set to true. See the example below:
+ *  autoResolvePromisedWritesToCache configuration property is set to true. This is useful in the case when the
+ *  batch write gets triggered due to maximumWriteDelay expiration. See the example below:
  *
  * @example
  * import { InfluxDB } from 'influx-nodejs'; // or const InfluxDB = require('influx-nodejs')
