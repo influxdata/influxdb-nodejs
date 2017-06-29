@@ -12,6 +12,19 @@ function getFieldType(fields, fieldname){
     return false;
 }
 
+function dropMeasurement(connection, measurement){
+
+    connection.connect().then(() => {
+
+        connection.executeQuery('drop measurement ' + measurement).catch((e) => {
+            return e;
+        })
+    }).catch((e) => {
+        return e;
+    });
+
+}
+
 describe('InfluxDB.types', function () {
 
     let connection = new InfluxDB.Connection({
@@ -143,33 +156,12 @@ describe('InfluxDB.types', function () {
 
         it('should drop the float values', function (done) {
 
-            connection.connect().then(() => {
-
-                connection.executeQuery('drop measurement powerf').then((result) => {
-                    done()
-                }).catch((e) => {
-                    done(e)
-                })
-
-            }).catch((e) => {
-                done(e)
-            });
+            done(dropMeasurement(connection, 'powerf'))
 
         })
 
     });
 
-    /*
-     N.B.  - Using reductio ad absurdum - writing integers as strings according to format specified
-     in Line Protocol Reference
-
-     https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_reference/#syntax
-
-     INSERT mymeas value=1i
-
-     We should probably decide upon a type convention, perhaps export FIELD_TYPE
-
-     */
     describe('#Integers', function () {
         it('should write integers', function (done) {
             let dPI1 = {
@@ -258,17 +250,8 @@ describe('InfluxDB.types', function () {
 
         it('should drop the integer values', function (done) {
 
-            connection.connect().then(() => {
+            done(dropMeasurement(connection, 'testint'))
 
-                connection.executeQuery('drop measurement testint').then((result) => {
-                    done()
-                }).catch((e) => {
-                    done(e)
-                })
-
-            }).catch((e) => {
-                done(e)
-            });
         })
 
     });
@@ -339,7 +322,6 @@ describe('InfluxDB.types', function () {
                 connection.executeQuery('select * from teststr').then((result) => {
                     assert.equal(result.length, 3);
                     for (let dp of result) {
-                        console.log("DEBUG " + dp.status);
                         switch (dp.location) {
                             case 'Turbine0017':
                                 assert.equal(dp.status, 'OK');
@@ -370,17 +352,7 @@ describe('InfluxDB.types', function () {
 
         it('should drop the datapoints', function (done) {
 
-            connection.connect().then(() => {
-                connection.executeQuery('drop measurement teststr').then((result) => {
-                    done()
-                }).catch((e) => {
-                    done(e)
-                })
-
-            }).catch((e) => {
-                done(e)
-            });
-
+            done(dropMeasurement(connection,'teststr'))
         })
 
     })
@@ -495,19 +467,319 @@ describe('InfluxDB.types', function () {
 
         it('should drop the datapoints', function (done) {
 
-            connection.connect().then(() => {
-                connection.executeQuery('drop measurement testbool').then((result) => {
-                    done()
-                }).catch((e) => {
-                    done(e)
-                })
-
-            }).catch((e) => {
-                done(e)
-            });
+            done(dropMeasurement(connection, 'testbool'));
 
         })
 
     })
+
+    describe('#Conflict string to float', function(){
+
+        let cxnf = new InfluxDB.Connection({
+            database: 'test2',
+            schema: [
+                {
+                    measurement: 'current',
+                    tags: ['location'],
+                    fields: {
+                        volts: InfluxDB.FieldType.FLOAT
+                    }
+                }]
+        })
+
+        let dpFlt = {
+            measurement: 'current',
+            timestamp: new Date().getTime() + 1000000,
+            tags: [{key: 'location', value: 'Turbine0017'}],
+            fields: [{key: 'volts', value: 271}]
+        };
+
+        let dpStr = {
+            measurement: 'current',
+            timestamp: new Date().getTime() + 1000000,
+            tags: [{key: 'location', value: 'Turbine0017'}],
+            fields: [{key: 'volts', value: 'forty-seven'}]
+        };
+
+        it('should write the initial float', function(done){
+
+            cxnf.connect().then(() => {
+
+                cxnf.write([dpFlt]).then(() => {
+
+                }).catch((e) => {
+                    done(e)
+                })
+
+                cxnf.flush().then(() => {
+                    done()
+                }).catch((e) => {
+                    done(e)
+                })
+            }).catch((e) => {
+                done(e)
+            })
+        })
+
+        it('should catch the invalid string type', function(done){
+
+            cxnf.connect().then(() => {
+
+                cxnf.write([dpStr]).catch((e) => {
+    //                done(e)
+                })
+
+                cxnf.flush().then(() => {
+                    done(new Error('Managed to write value of type String to field of type Float'))
+                }).catch((e) => {
+//                    console.log('second write flush failed - which is correct: ' + e);
+                    done()
+                })
+
+            }).catch((e) => {
+                done(e)
+            })
+
+        })
+
+        it('should drop the float data', function(done){
+
+              done(dropMeasurement(cxnf, 'current'))
+
+        })
+
+    })
+
+    describe('#Conflict float to integer', function(){
+
+        let cxni = new InfluxDB.Connection({
+            database: 'test2',
+            schema: [
+                {
+                    measurement: 'pulse',
+                    tags: ['location'],
+                    fields: {
+                        bps: InfluxDB.FieldType.INTEGER
+                    }
+                }]
+        })
+
+        let dpInt = {
+            measurement: 'pulse',
+            timestamp: new Date().getTime() + 1000000,
+            tags: [{key: 'location', value: 'Turbine0017'}],
+            fields: [{key: 'bps', value: 271}]
+        };
+
+        let dpFlt = {
+            measurement: 'pulse',
+            timestamp: new Date().getTime() + 1000000,
+            tags: [{key: 'location', value: 'Turbine0017'}],
+            fields: [{key: 'bps', value: 302.5432}]
+        };
+
+        it('should write the initial int', function(done){
+
+            cxni.connect().then(() => {
+
+                cxni.write([dpInt]).then(() => {
+
+                }).catch((e) => {
+                    done(e)
+                })
+
+                cxni.flush().then(() => {
+                    done()
+                }).catch((e) => {
+                    done(e)
+                })
+            }).catch((e) => {
+                done(e)
+            })
+        })
+
+        it('should catch the invalid float type', function(done){
+
+            cxni.connect().then(() => {
+
+                cxni.write([dpFlt]).catch((e) => {
+                    //                done(e)
+                })
+
+                cxni.flush().then(() => {
+                    done(new Error('Managed to write value of type Float to field of type Integer'))
+                }).catch((e) => {
+//                    console.log('second write flush failed - which is correct: ' + e);
+                    done()
+                })
+
+            }).catch((e) => {
+                done(e)
+            })
+
+        })
+
+        it('should drop the integer data', function(done){
+
+            done(dropMeasurement(cxni, 'pulse'))
+
+        })
+
+    })
+
+    describe('#Conflict float to boolean', function(){
+
+        let cxnb = new InfluxDB.Connection({
+            database: 'test2',
+            schema: [
+                {
+                    measurement: 'connection',
+                    tags: ['location'],
+                    fields: {
+                        connected: InfluxDB.FieldType.BOOLEAN
+                    }
+                }]
+        })
+
+        let dpBool = {
+            measurement: 'connection',
+            timestamp: new Date().getTime() + 1000000,
+            tags: [{key: 'location', value: 'Turbine0017'}],
+            fields: [{key: 'connected', value: true}]
+        };
+
+        let dpFlt = {
+            measurement: 'connection',
+            timestamp: new Date().getTime() + 1000000,
+            tags: [{key: 'location', value: 'Turbine0017'}],
+            fields: [{key: 'connected', value: 0.0012}]
+        };
+
+        it('should write the initial bool', function(done){
+
+            cxnb.connect().then(() => {
+
+                cxnb.write([dpBool]).then(() => {
+
+                }).catch((e) => {
+                    done(e)
+                })
+
+                cxnb.flush().then(() => {
+                    done()
+                }).catch((e) => {
+                    done(e)
+                })
+            }).catch((e) => {
+                done(e)
+            })
+        })
+
+        it('should catch the invalid float type', function(done){
+
+            cxnb.connect().then(() => {
+
+                cxnb.write([dpFlt]).catch((e) => {
+                    //                done(e)
+                })
+
+                cxnb.flush().then(() => {
+                    done(new Error('Managed to write value of type Float to field of type Boolean'))
+                }).catch((e) => {
+//                    console.log('second write flush failed - which is correct: ' + e);
+                    done()
+                })
+
+            }).catch((e) => {
+                done(e)
+            })
+
+        })
+
+        it('should drop the boolean data', function(done){
+
+            done(dropMeasurement(cxnb, 'connection'))
+
+        })
+
+    })
+
+    describe('#Conflict float to string', function(){
+
+        let cxns = new InfluxDB.Connection({
+            database: 'test2',
+            schema: [
+                {
+                    measurement: 'status',
+                    tags: ['location'],
+                    fields: {
+                        state: InfluxDB.FieldType.STRING
+                    }
+                }]
+        })
+
+        let dpStr = {
+            measurement: 'status',
+            timestamp: new Date().getTime() + 1000000,
+            tags: [{key: 'location', value: 'Turbine0017'}],
+            fields: [{key: 'state', value: 'WARNING'}]
+        };
+
+        let dpFlt = {
+            measurement: 'status',
+            timestamp: new Date().getTime() + 1000000,
+            tags: [{key: 'location', value: 'Turbine0017'}],
+            fields: [{key: 'state', value: 7}]
+        };
+
+        it('should write the initial string', function(done){
+
+            cxns.connect().then(() => {
+
+                cxns.write([dpStr]).then(() => {
+
+                }).catch((e) => {
+                    done(e)
+                })
+
+                cxns.flush().then(() => {
+                    done()
+                }).catch((e) => {
+                    done(e)
+                })
+            }).catch((e) => {
+                done(e)
+            })
+        })
+
+        it('should catch the invalid float type', function(done){
+
+            cxns.connect().then(() => {
+
+                cxns.write([dpFlt]).catch((e) => {
+                    //                done(e)
+                })
+
+                cxns.flush().then(() => {
+                    done(new Error('Managed to write value of type Float to field of type Boolean'))
+                }).catch((e) => {
+//                    console.log('second write flush failed - which is correct: ' + e);
+                    done()
+                })
+
+            }).catch((e) => {
+                done(e)
+            })
+
+        })
+
+        it('should drop the string data', function(done){
+
+            done(dropMeasurement(cxns, 'status'))
+
+        })
+
+    })
+
 
 });
