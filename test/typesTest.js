@@ -1,29 +1,6 @@
 let assert = require('assert');
 let InfluxDB = require('../src/InfluxDB');
-
-function getFieldType(fields, fieldname){
-
-    for(let f of fields){
-
-        if(f.fieldKey == fieldname){
-            return f.fieldType;
-        }
-    }
-    return false;
-}
-
-function dropMeasurement(connection, measurement){
-
-    connection.connect().then(() => {
-
-        connection.executeQuery('drop measurement ' + measurement).catch((e) => {
-            return e;
-        })
-    }).catch((e) => {
-        return e;
-    });
-
-}
+let util = require('./utils.js')
 
 describe('InfluxDB.types', function () {
 
@@ -111,7 +88,7 @@ describe('InfluxDB.types', function () {
 
                 connection.executeQuery('SHOW FIELD KEYS').then((result) => {
 
-                    assert.equal(getFieldType(result,'kwatts'), 'float')
+                    assert.equal(util.getFieldType(result,'kwatts'), 'float')
                     done()
 
                 }).catch((e) => {
@@ -156,7 +133,7 @@ describe('InfluxDB.types', function () {
 
         it('should drop the float values', function (done) {
 
-            done(dropMeasurement(connection, 'powerf'))
+            done(util.dropMeasurement(connection, 'powerf'))
 
         })
 
@@ -203,7 +180,7 @@ describe('InfluxDB.types', function () {
 
                 connection.executeQuery('SHOW FIELD KEYS').then((result) => {
 
-                    assert.equal(getFieldType(result,'rpms'), 'integer')
+                    assert.equal(util.getFieldType(result,'rpms'), 'integer')
                     done()
 
                 }).catch((e) => {
@@ -250,7 +227,7 @@ describe('InfluxDB.types', function () {
 
         it('should drop the integer values', function (done) {
 
-            done(dropMeasurement(connection, 'testint'))
+            done(util.dropMeasurement(connection, 'testint'))
 
         })
 
@@ -303,7 +280,7 @@ describe('InfluxDB.types', function () {
 
                 connection.executeQuery('SHOW FIELD KEYS').then((result) => {
 
-                    assert.equal(getFieldType(result,'status'), 'string')
+                    assert.equal(util.getFieldType(result,'status'), 'string')
                     done()
 
                 }).catch((e) => {
@@ -352,7 +329,7 @@ describe('InfluxDB.types', function () {
 
         it('should drop the datapoints', function (done) {
 
-            done(dropMeasurement(connection,'teststr'))
+            done(util.dropMeasurement(connection,'teststr'))
         })
 
     })
@@ -416,7 +393,7 @@ describe('InfluxDB.types', function () {
 
                 connection.executeQuery('SHOW FIELD KEYS').then((result) => {
 
-                    assert.equal(getFieldType(result,'online'), 'boolean')
+                    assert.equal(util.getFieldType(result,'online'), 'boolean')
                     done()
 
                 }).catch((e) => {
@@ -467,7 +444,7 @@ describe('InfluxDB.types', function () {
 
         it('should drop the datapoints', function (done) {
 
-            done(dropMeasurement(connection, 'testbool'));
+            done(util.dropMeasurement(connection, 'testbool'));
 
         })
 
@@ -544,7 +521,7 @@ describe('InfluxDB.types', function () {
 
         it('should drop the float data', function(done){
 
-              done(dropMeasurement(cxnf, 'current'))
+              done(util.dropMeasurement(cxnf, 'current'))
 
         })
 
@@ -621,7 +598,7 @@ describe('InfluxDB.types', function () {
 
         it('should drop the integer data', function(done){
 
-            done(dropMeasurement(cxni, 'pulse'))
+            done(util.dropMeasurement(cxni, 'pulse'))
 
         })
 
@@ -698,7 +675,7 @@ describe('InfluxDB.types', function () {
 
         it('should drop the boolean data', function(done){
 
-            done(dropMeasurement(cxnb, 'connection'))
+            done(util.dropMeasurement(cxnb, 'connection'))
 
         })
 
@@ -775,7 +752,7 @@ describe('InfluxDB.types', function () {
 
         it('should drop the string data', function(done){
 
-            done(dropMeasurement(cxns, 'status'))
+            done(util.dropMeasurement(cxns, 'status'))
 
         })
 
