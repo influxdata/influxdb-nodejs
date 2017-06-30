@@ -98,7 +98,7 @@ describe('Connection test', function(){
         let testdps = util.buildDatapoints('distance',
                                    [{name: 'unit', base: 'baker-', type: 'string'}],
                                    [{name: 'frombase', base: 0, type: 'float'}],
-                                   100)
+                                   300) //force buffer to flush three times in succession
         let chunk_size = 10;
         //will write in chunks of 10 items
         let dpchunks = testdps.map( function(e, i){
