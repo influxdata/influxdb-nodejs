@@ -94,7 +94,7 @@ class ConnectionImpl {
         let requiredType=undefined;
         let schema=this.schemas[dataPoint.measurement];
         if(schema!==undefined && schema.fields!==undefined) {
-            let requiredType=schema.fields[fieldName];
+            requiredType=schema.fields[fieldName];
             if(requiredType===undefined)
                 throw new Error(`Field ${fieldName} is not declared in the schema`+
                     ` for measurement ${dataPoint.measurement}`);
@@ -133,7 +133,7 @@ class ConnectionImpl {
                     return ''+v;
                 case FieldType.INTEGER:
                     validateType('number');
-                    if(v!==(~~v)) {
+                    if(v!==Math.floor(v)) {
                         throw new Error(`Invalid value supplied for field ${fieldName} of `+
                             `measurement ${dataPoint.measurement}.`+
                             'Should have been an integer but supplied number has a fraction part.' +
@@ -302,7 +302,11 @@ class ConnectionImpl {
                     url: url,
                     method: 'POST',
                     headers: { "Content-Type": "application/text" },
-                    body: bodyBuffer
+                    body: bodyBuffer,
+                    auth: {
+                        user: this.options.username,
+                        pass: this.options.password
+                    }
                 },
                 (error, result) => {
                     if(error) {
@@ -350,6 +354,10 @@ class ConnectionImpl {
             url+='db='+encodeURIComponent(db)+'&';
             request.post({
                     url: url+'q='+encodeURIComponent(query),
+                    auth: {
+                        user: this.options.username,
+                        pass: this.options.password
+                    }
                 },
                 (error, result) => {
                     if(error) {

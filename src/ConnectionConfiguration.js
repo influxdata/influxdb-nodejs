@@ -7,8 +7,8 @@
  * @property {String} [password='root'] Password for connecting to the database.
  * @property {String} [database] Database to work with
  * @property {Boolean} [autoCreateDatabase=true] Automatically create database if it doesn't exist yet
- * @property {Array} hosts A list of Influx hosts to connect to.
- * @property {String} [hostUrl='http://127.0.0.1:8086'] Influx host url to connect to. For UDP access use URL
+ * @property {String} [hostUrl='http://127.0.0.1:8086'] Influx host url to connect to. For influx cloud use https scheme
+ *      and don't forget to pass username and password properties. For UDP access use URL
  *      in the following form: udp://127.0.0.1:8089. For more information on using UDP InfluxDB service check the
  *      documentation https://github.com/influxdata/influxdb/blob/master/services/udp/README.md
  * @property {Schema[]} [schema] of measurements accessed by this connection, validated when writing data points into
