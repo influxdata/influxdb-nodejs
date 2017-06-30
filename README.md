@@ -26,6 +26,7 @@ Version 1.0.0
 You may [check the reference documentation as well.](https://dubsky.bitbucket.io/typedef/index.html#static-typedef-InfluxDB)
 
 #### Connect to a database
+```JavaScript
     ...
     let InfluxDB=require('influxdb-nodejs');
     let connection=new InfluxDB.Connection({
@@ -39,9 +40,10 @@ You may [check the reference documentation as well.](https://dubsky.bitbucket.io
         console.log('error',e);
     });
     ...
+```
 
 #### Write to a database
-
+```JavaScript
     ...
 
     connection.connect().then(()=>{
@@ -74,9 +76,10 @@ You may [check the reference documentation as well.](https://dubsky.bitbucket.io
         console.log('error',e);
     });
     ...
+```
 
 #### Read from a database
-
+```JavaScript
     ...
 
     connection.connect().then(()=>{
@@ -90,9 +93,9 @@ You may [check the reference documentation as well.](https://dubsky.bitbucket.io
         console.log('error',e);
     });
     ...
-
+```
 #### Drop data from a database
-
+```JavaScript
     ...
     let connection=new InfluxDB.Connection({
         hostUrl: 'http://localhost:8086',
@@ -110,7 +113,7 @@ You may [check the reference documentation as well.](https://dubsky.bitbucket.io
         console.log('error',e);
     });
     ...
-
+```
 [//]: # (* Summary of set up)
 [//]: # (* Configuration )
 [//]: # (* Dependencies)
