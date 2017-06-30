@@ -15,9 +15,6 @@ function sleep(ms){
 
 function dropMeasurement(connection, measurement){
 
-    console.log("DEBUG: dropping from " + connection)
-    console.log('DEBUG: DROP MEASUREMENT ' + measurement)
-
     connection.connect().then(() => {
 
 
@@ -42,14 +39,6 @@ function leftpad(num, size) {
 }
 
 function buildValue(type, base, index, pad){
-
-   // console.log(pad)
- //   if(pad !== undefined){
- //       intpad = Array(pad).fill("0").join('');
- //   }else{
- //       intpad = ''
- //   }
-  //  console.log(new Array(pad).fill("0").join(''))
 
     switch(type){
         case 'string':

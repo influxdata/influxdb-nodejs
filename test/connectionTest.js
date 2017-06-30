@@ -14,21 +14,21 @@ describe('Connection test', function(){
 
         let dp1 = {
             measurement: 'location',
-            timestamp: new Date(),
+//            timestamp: new Date(), N.B. client should fill in missing timestamp automatically
             tags: [{ key: 'unit', value: 'adam-12' }],
             fields: [{ key: 'coordinates' , value: '34_06_46_N_118_20_20_W'}]
         }
 
         let dp2 = {
             measurement: 'location',
-            timestamp: new Date(),
+ //           timestamp: new Date(),
             tags: [{ key: 'unit', value: 'l-30' }],
             fields: [{ key: 'coordinates' , value: '34.11856_N_118.30037_W'}]
         }
 
         let dp3 = {
             measurement: 'location',
-            timestamp: new Date(),
+//            timestamp: new Date(),
             tags: [{ key: 'unit', value: 'zebra-07' }],
             fields: [{ key: 'coordinates' , value: '33_56_33_N_118_24_29_W'}]
         }
@@ -76,7 +76,7 @@ describe('Connection test', function(){
         })
 
         it('should drop the measurement', function(done){
-            result = util.dropMeasurement(cxnaw,'location'); //hmmm doesn't seem to be dropping
+            let result = util.dropMeasurement(cxnaw,'location'); //hmmm doesn't seem to be dropping
 
             //take a moment for transaction to complete otherwise lose connection object too soon in some cases
             util.sleep(1000).then(() => { done(result)});
