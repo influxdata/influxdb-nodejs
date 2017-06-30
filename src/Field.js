@@ -50,6 +50,7 @@ module.exports={FieldType}
  * and providing immediate error feedback if you try to write data which doesn't fit in your schema: either if you include tags of
  * fields which are not present in your schema, or you enter the wrong data type for one of your schema fields.
  *
+ * See {@link FieldType} for available field types.
  *
  * @typedef {Object} Schema
  * @property {String} measurement Name of the measurement
