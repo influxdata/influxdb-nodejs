@@ -32,19 +32,58 @@ class Connection {
     }
 
     /**
-     * Write measurement data points into InfluxDB
+     * Write measurement data points into InfluxDB.
+     *
+     * By default data points submitted are stored in an internal buffer of the connection. This buffer gets flushed
+     * into InfluxDB by four different means:
+     *
+     *    1. once it's data point capacity has been reached (It is configured using
+     *       {@link ConnectionConfiguration}.batchSize when creating the connection)
+     *    2. once the oldest data point submitted in the buffer gets older than
+     *       the value {@link ConnectionConfiguration}.maximumWriteDelay defined when
+     *       creating the connection.
+     *    3. when you call {@link Connection.flush} method
+     *    4. when you call {@link Connection.write} method with the optional parameter forceFlush=true
+     *
+     *
+     * You may disable the batching feature by setting any of the two parameters
+     * {@link ConnectionConfiguration}.batchSize, {@link ConnectionConfiguration}.maximumWriteDelay to zero.
+     * After that, writes to InfluxDB will be initiated during the call to the {@link Connection.write} method.
+     *
+     * The function returns a promise. There are two ways how promises are resolved
+     * (distinguished by {@link ConnectionConfiguration}.autoResolvePromisedWritesToCache):
+     *
+     *    1. (autoResolvePromisedWritesToCache=true, Default) The promise gets resolved as the data points are stored
+     *       in the connection buffer. In this case some writes are stored in the buffer only and
+     *       when an error occurs during communication with InfluxDB the error will get propagated only:
+     *       * To the write method promise that triggered communication with InfluxDB (either data point capacity
+     *       overrun or by calling write with parameter forceFlush=true)
+     *       * To the promise returned by calling a flush method
+     *       * To the error handler defined by {@link ConnectionConfiguration}.batchWriteErrorHandler when the
+     *         communication to InfluxDB is triggered by the condition when there is a data point in the connection
+     *         buffer older than time defined by {@link ConnectionConfiguration}.maximumWriteDelay
+     *    2. (autoResolvePromisedWritesToCache=false) The promise is never resolved before the data points are
+     *         successfully written into InfluxDB.
+     *         In the case of communication failure you will receive as many errors as the number of
+     *         invocations of {@link ConnectionConfiguration.write} since the last successful write into InfluxDB.
+     *         This mode is useful when you need higher reliability of writes into InfluxDB (you may react accordingly
+     *         to each missed write). On the other hand applications that doesn't need that high level of reliability
+     *         would suffer of log pollution from error messages (one error for each batch write to Influx might be enough).
+     *         Also, this mode consumes more cpu and memory resources).
+     *
      *
      * @param {DataPoint[]} dataPoints - an array of measurement points to write into InfluxDB
-     * @param {Boolean} [forceFlush] - if true the internal data point cache gets flushed into InfluxDB right away
+     * @param {Boolean} [forceFlush=false] - if true the internal data point cache gets flushed into InfluxDB right away.
      * @returns {Promise} - a promise that is evaluated when data are either written into InfluxDB or
      * a i/o error occurs. (You have to call Promise.then() method of course)
+     *
      * @example
-     * {
-     *   measurement : 'temperature',
-     *   timestamp: '1465839830100400200'
-     *   tags: []
-     *   fields: []
-     * }
+     *
+     *   connection.write([dataPoint1, dataPoint2]).then(() => {
+     *        console.log('Data were written');
+     *   }).catch((e) => {
+     *        console.log('Error writing data point', e);
+     *   });
      *
      */
     write(dataPoints, forceFlush) {
