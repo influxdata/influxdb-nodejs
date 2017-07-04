@@ -144,4 +144,96 @@ describe('Connection test', function(){
 
     });
 
+    describe('#Timeout expire automatic write', function(){
+
+        let writeDelay = 1000; //default writeDelay
+
+        let cxnquick = new InfluxDB.Connection({
+
+            database: 'test1',
+            maximumWriteDelay: writeDelay
+
+        });
+
+        let dp1 = {
+            measurement: 'temperature',
+            timestamp: new Date(), //N.B. client should fill in missing timestamp automatically
+            tags: [{ key: 'turbine', value: 'bremerhaven-0013' }],
+            fields: [{ key: 'celsius' , value: '67.3'}]
+        }
+
+        let dp2 = {
+            measurement: 'temperature',
+            timestamp: new Date(),
+            tags: [{ key: 'turbine', value: 'bremerhaven-0017' }],
+            fields: [{ key: 'celsius' , value: '22'}]
+        }
+
+        let dp3 = {
+            measurement: 'temperature',
+            timestamp: new Date(),
+            tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
+            fields: [{ key: 'celsius' , value: '39.5'}]
+        }
+
+        it('should write to db after delay expires', function(done){
+
+            cxnquick.connect().then(() => {
+                cxnquick.write([dp1, dp2, dp3]).then(() => {
+                    done()
+                }).catch((e) => {
+                    done(e)
+                })
+            }).catch((e) => {
+                done(e)
+            })
+
+        });
+
+        it('should read back the data after the delay of ' + writeDelay + 'ms expires', function(done){
+
+            cxnquick.connect().then(() => {
+                util.sleep(writeDelay).then(() => {
+                    cxnquick.executeQuery('Select * from temperature').then((result) => {
+                        assert.equal(result.length, 3);
+                        for(let dp of result){
+                            switch(dp.turbine){
+                                case 'bremerhaven-0013':
+                                    assert.equal(dp.celsius, dp1.fields[0].value);
+                                    break;
+                                case 'bremerhaven-0017':
+                                    assert.equal(dp.celsius, dp2.fields[0].value);
+                                    break;
+                                case 'bremerhaven-0019':
+                                    assert.equal(dp.celsius, dp3.fields[0].value);
+                                    break;
+                                default:
+                                    throw new Error('Unknown element in results array');
+                                    break;
+                            }
+                        }
+                        done()
+                    }).catch((e) => {
+                        done(e)
+                    })
+                }).catch((e) => {
+                    done(e)
+                })
+            }).catch((e) => {
+                done(e)
+            })
+
+        });
+
+        it('should drop the test data', function(done){
+
+            let result = util.dropMeasurement(cxnquick, 'temperature');
+            util.sleep(1000).then(() => {
+                done(result)
+            })
+
+        })
+
+    })
+
 });
