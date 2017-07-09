@@ -26,6 +26,7 @@ class Connection {
      * called before first write into InfluxDB automatically.
      *
      * @returns {Promise}
+     * @throws {InfluxDBError}
      */
     connect() {
         return this.stub.connect();
@@ -76,6 +77,7 @@ class Connection {
      * @param {Boolean} [forceFlush=false] - if true the internal data point cache gets flushed into InfluxDB right away.
      * @returns {Promise} - a promise that is evaluated when data are either written into InfluxDB or
      * a i/o error occurs. (You have to call Promise.then() method of course)
+     * @throws {InfluxDBError}
      *
      * @example
      *
@@ -93,6 +95,7 @@ class Connection {
     /**
      * Flush buffered measurement data into InfluxDB server(s)
      * @returns {Promise}
+     * @throws {InfluxDBError}
      */
     flush() {
         return this.stub.flush();
@@ -104,6 +107,7 @@ class Connection {
      * @returns {Array} post-processed data so that these are easy to work with. The result is an array of objects where
      * fields and tags are stored as regular properties. There is also a time property holding the
      * timestamp of the measurement as javascript Date object.
+     * @throws {InfluxDBError}
      *
      * @example
      * [
@@ -127,6 +131,7 @@ class Connection {
      * Execute query on InfluxDB and get unmodified result JSON data
      * @param {String} query text definition of the query, 'select * from outdoorTemperature' for example
      * @returns {Array} unmodified result JSON data as responded by InfluxDb
+     * @throws {InfluxDBError}
      */
     executeRawQuery(query) {
         return this.stub.executeRawQuery(query);

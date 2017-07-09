@@ -38,7 +38,7 @@ let FieldType = {
 
 };
 
-module.exports={FieldType}
+module.exports={FieldType};
 
 
 /**

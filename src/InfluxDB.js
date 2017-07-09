@@ -27,5 +27,9 @@ let FieldType = require('./Field').FieldType;
  * @ignore
  */
 let Connection = require('./Connection');
+/**
+ * @ignore
+ */
+let InfluxDBError = require('./InfluxDBError');
 
-module.exports={ Connection,FieldType };
+module.exports={ Connection, FieldType, InfluxDBError };
