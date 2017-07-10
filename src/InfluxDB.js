@@ -7,7 +7,6 @@
  * @property {FieldType} FieldType reference to the {@link FieldType} object, used to define measurement schemas
  *
  * @example
- *
  * const InfluxDB=require('influxdb-nodejs');
  *
  * let connection=new InfluxDB.Connection({

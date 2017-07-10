@@ -573,5 +573,5 @@ class ConnectionImpl {
     }
 }
 
-//export default InfluxDbConnectionImpl;
+//export default ConnectionImpl;
 module.exports=ConnectionImpl;

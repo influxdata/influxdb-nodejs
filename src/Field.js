@@ -1,6 +1,6 @@
 /**
  * Field is a key-value pair in InfluxDB’s data structure that records metadata and the actual data value.
- * See: https://docs.influxdata.com/influxdb/v1.2/concepts/glossary/#field
+ * See: https://docs.influxdata.com/influxdb/latest/concepts/glossary/#field
  *
  * @public
  * @typedef {Object} Field
@@ -8,7 +8,6 @@
  * @property {(String|Number|Boolean)} value The value part of the key-value pair that makes up a field.
  *
  * @example
- *
  * let field={
  *   key: 'temperature',
  *   value: 23.7
@@ -21,7 +20,6 @@
  * FieldType is an enumeration of InfluxDB field data types.
  * @typedef {Number} FieldType
  * @example
- *
  * const schema = {
  *   measurement: 'my_measurement',
  *   fields: {
@@ -44,22 +42,23 @@ module.exports={FieldType};
 /**
  * Schema describes tags and fields that can be used with a measurement.
  *
- * It is used to decide which type to use (Integer or Float) when a javascript Number is stored as as a field value.
+ * It's recommended, but not required to use a schema; it is used to:
  *
- * It's recommended, but not required, that you make use of schema; internally we use them to be smarter about coercing your data,
- * and providing immediate error feedback if you try to write data which doesn't fit in your schema: either if you include tags of
- * fields which are not present in your schema, or you enter the wrong data type for one of your schema fields.
+ *    * Coerce your data (converting properly JavasSript Number to either floats or integers that are available
+ *      in InfluxDB)
+ *    * Provide immediate error feedback if data supplied to the {@Connection#write} method are not compliant
+ *      with the schema. Error is signalled when there is a field/tag which is not present in your schema,
+ *      or the data type of a field does not match the schema.
  *
  * See {@link FieldType} for available field types.
  *
  * @typedef {Object} Schema
  * @property {String} measurement Name of the measurement
- * @property {Object[]} fields Field names and their corresponding types for the given measurement. If you won't define this
- *    property fields will not be validated.
- * @property {String[]} tags List of allowed tag names for the measurement. If you won't define this any tag value will
- *    be defined.
+ * @property {Object[]} [fields] Field names and their corresponding types for the given measurement.If not defined
+ *     no field validation will be executed.
+ * @property {String[]} [tags] List of allowed tag names for the measurement. If not defined no tag validation
+ *     will be executed.
  * @example
- *
  * const schema = {
  *   measurement: 'my_measurement',
  *   tags: ['someTag', 'someOtherTag']
