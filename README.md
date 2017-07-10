@@ -1,12 +1,12 @@
 # InfluxDB Javascript Client #
 
-This repository contains the javascript client of the InfluxDB time series database server from [Influxdata](https://www.influxdata.com/).  This client is officially supported by Influxdata.
+This repository contains the javascript client of the InfluxDB time series database server from [InfluxData](https://www.influxdata.com/).  This client is officially supported by InfluxData.
 
-The documentation here only covers the client API in Javascript.  For more inflormation about the InfluxDB server please consult the [server documentation](https://docs.influxdata.com/influxdb/v1.2/introduction/).
+The documentation here only covers the client API in Javascript.  For more information about the InfluxDB server please consult the [server documentation](https://docs.influxdata.com/influxdb/latest/introduction/).
 
 ### Quick Install ###
 
-To quickly add the InfluxDB javascript client to your Nodejs project:
+To quickly add the InfluxDB javascript client to your Node.js project:
 
     $ npm install --save influxdb-nodejs
 
@@ -15,40 +15,35 @@ To quickly add the InfluxDB javascript client to your Nodejs project:
 A full featured client written in ECMAScript 2015.
 
 * Supports write batching and query result post-processing
-* Supports nodejs 0.10 and later (note that all the examples are written using ES6 which is supported by node.js natively since node version 4)
+* Supports Node.js 0.10 and later (note that all the examples are written using ES6 which is supported by Node.js natively since version 4)
 * Provides easy access to the core InfluxDB API.
-
-
-Version 1.0.0
 
 ### Setup ###
 
 You may [check the reference documentation as well.](https://dubsky.bitbucket.io/typedef/index.html#static-typedef-InfluxDB)
 
 #### Connect to a database
-```JavaScript
-    ...
-    let InfluxDB=require('influxdb-nodejs');
-    let connection=new InfluxDB.Connection({
+
+```javascript
+    const InfluxDB = require('influxdb-nodejs');
+
+    const connection = new InfluxDB.Connection({
         hostUrl: 'http://localhost:8086',
         database: 'mydb'
     });
 
-    connection.connect().then((result)=>{
-       console.log('connection success');
-    }).catch((e)=>{
-        console.log('error',e);
+    connection.connect().then(() => {
+       console.log('Connection established successfully');
+    }).catch((e) => {
+       console.error('Unexpected Error',e);
     });
-    ...
 ```
-
 #### Write to a database
-```JavaScript
-    ...
 
-    connection.connect().then(()=>{
+```javascript
+    connection.connect().then(() => {
 
-        let dataPoint1={
+        const dataPoint1 = {
             measurement : 'outdoorThermometer',
             timestamp: new Date(),
             tags: {
@@ -56,64 +51,61 @@ You may [check the reference documentation as well.](https://dubsky.bitbucket.io
                 fields: { temperature: 23.7 }
         };
 
-        let dataPoint2={
+        // you can also provide tag and field data as arrays of objects:
+        const dataPoint2 = {
             measurement : 'outdoorThermometer',
             timestamp: new Date().getTime()+1000000,
-            tags: [ { key: 'location', value: 'outdoor' }],
-            fields: [ { key: 'temperature', value: 23.7 } ]
+            tags: [
+                {
+                    key: 'location',
+                    value: 'outdoor'
+                }
+            ],
+            fields: [
+                {
+                    key: 'temperature',
+                    value: 23.7
+                }
+            ]
         };
 
-        connection.write([dataPoint1,dataPoint2]).catch((e) => {
-          console.log('Error writing data point',e);
-          });
-        connection.flush().then(()=>{
-          console.log('Error flushing write buffer')
-          }).catch((e) => {
-            console.log('Error', e);
-          });
+        const series = [dataPoint1, dataPoint2];
+        connection.write(series).catch(console.error);
 
-    }).catch((e)=>{
-        console.log('error',e);
-    });
-    ...
+        connection.flush().then(() => {
+            console.log('Data written into InfluxDB')
+        }).catch(console.error);
+
+    }).catch(console.error);
 ```
 
 #### Read from a database
-```JavaScript
-    ...
 
-    connection.connect().then(()=>{
-        connection.executeQuery('select * from outdoorThermometer group by location').then((r) => {
-            console.log(r);
-        }).catch((e) => {
-            console.log('Error executing query',e);
-        });
+```javascript
+    connection.connect().then(() => {
+        connection.executeQuery('select * from outdoorThermometer group by location').then((result) => {
+            console.log(result);
+        }).catch(console.error);
 
-    }).catch((e)=>{
-        console.log('error',e);
-    });
-    ...
+    }).catch(console.error);
 ```
+
 #### Drop data from a database
-```JavaScript
-    ...
-    let connection=new InfluxDB.Connection({
+
+```javascript
+    let connection = new InfluxDB.Connection({
         hostUrl: 'http://localhost:8086',
         database: 'mydb'
     });
 
     connection.connect().then(()=>{
-        connection.executeQuery('drop measurement outdoorThermometer').then((r) => {
-          console.log(r);
-        }).catch((e) => {
-          console.log('Error executing query', e);
-        });
+        connection.executeQuery('drop measurement outdoorThermometer').then(() => {
+          console.log('Measurement dropped');
+        }).catch(console.error);
 
-    }).catch((e)=>{
-        console.log('error',e);
-    });
-    ...
+    }).catch(console.error);
 ```
+
 [//]: # (* Summary of set up)
 [//]: # (* Configuration )
 [//]: # (* Dependencies)
@@ -121,13 +113,7 @@ You may [check the reference documentation as well.](https://dubsky.bitbucket.io
 [//]: # (* How to run tests)
 [//]: # (* Deployment instructions)
 
-### Contribution guidelines ###
 
-* Writing tests
-* Code review
-* Other guidelines
+### Releases ###
 
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+* Version 1.0.0 - Initial release

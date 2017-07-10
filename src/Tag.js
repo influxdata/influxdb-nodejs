@@ -8,7 +8,6 @@
  * @property {String} value The value part of the key-value pair that makes up a tag
  *
  * @example
- *
  * let tag={
  *    key: 'location',
  *    value: 'outdoor'

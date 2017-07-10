@@ -15,6 +15,13 @@ describe('InfluxDB.types', function () {
                 }
             },
             {
+                measurement: 'powerf2',
+                tags: ['location'],
+                fields: {
+                    kwatts: InfluxDB.FieldType.FLOAT
+                }
+            },
+            {
                 measurement: 'testint',
                 tags: ['location'],
                 fields: {
@@ -38,6 +45,59 @@ describe('InfluxDB.types', function () {
 
 
         ]
+
+    });
+
+    describe("tags",function() {
+        it('should fail on invalid tag',function(done){
+            let dPF1 = {
+                measurement: 'powerf2',
+                tags: { group: 'home'},
+                timestamp: new Date().getTime() + 1000000,
+                fields: [{key: 'kwatts', value: 49}]
+            };
+            connection.connect().then(() => {
+
+                connection.write([dPF1]).then(() => {
+                    connection.flush().then(() => {
+                        done(new Error('tags are not properly checked'));
+                    }).catch((e) => {
+                        console.log('ERROR ON FLUSH');
+                        done(e);
+                    });
+
+                }).catch((e) => {
+                    done();
+                });
+
+            }).catch((e) => {
+                done(e);
+            });
+        });
+
+        it('should not fail when no tags specified',function(done){
+            let dPF1 = {
+                measurement: 'powerf2',
+                timestamp: new Date().getTime() + 1000000,
+                fields: [{key: 'kwatts', value: 49}]
+            };
+            connection.connect().then(() => {
+
+                connection.write([dPF1]).then(() => {
+                    connection.flush().then(() => {
+                        done();
+                    }).catch((e) => {
+                        done(e);
+                    });
+
+                }).catch((e) => {
+                    done(e);
+                });
+
+            }).catch((e) => {
+                done(e);
+            });
+        });
 
     });
 
@@ -164,7 +224,11 @@ describe('InfluxDB.types', function () {
 
             connection.connect().then(() => {
                 connection.write([dPI1, dPI2, dPI3]).then(() => {
-                    done()
+                    connection.flush().then(() => {
+                        done();
+                    }).catch((e) => {
+                        done(e);
+                    });
                 }).catch((e) => {
                     done(e)
                 });
@@ -172,7 +236,6 @@ describe('InfluxDB.types', function () {
             }).catch((e) => {
                 done(e)
             });
-//N.B. need to check writing a float value to a field already defined as int
         });
 
         it('should verify the field type in Influx', function(done){
@@ -264,7 +327,11 @@ describe('InfluxDB.types', function () {
             connection.connect().then(() => {
 
                 connection.write([dpS1, dpS2, dpS3]).then(() => {
-                    done()
+                    connection.flush().then(() => {
+                        done();
+                    }).catch((e) => {
+                        done(e);
+                    });
                 }).catch((e) => {
                     done(e)
                 });

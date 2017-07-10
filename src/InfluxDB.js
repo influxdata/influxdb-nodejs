@@ -7,7 +7,6 @@
  * @property {FieldType} FieldType reference to the {@link FieldType} object, used to define measurement schemas
  *
  * @example
- *
  * const InfluxDB=require('influxdb-nodejs');
  *
  * let connection=new InfluxDB.Connection({
@@ -27,5 +26,9 @@ let FieldType = require('./Field').FieldType;
  * @ignore
  */
 let Connection = require('./Connection');
+/**
+ * @ignore
+ */
+let InfluxDBError = require('./InfluxDBError');
 
-module.exports={ Connection,FieldType };
+module.exports={ Connection, FieldType, InfluxDBError };

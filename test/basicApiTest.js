@@ -68,11 +68,12 @@ describe('InfluxDB.Connection', function() {
                     fields: [{key: 'temperature', value: 23.7}]
                 };
 
-                connection.write([dataPoint1, dataPoint2]).catch((e) => {
+                connection.write([dataPoint1, dataPoint2]).then(()=>{ console.log('written');}).catch((e) => {
                     done(e);
                 });
                 connection.flush().then(() => {
-                    done()
+                    console.log('flushed');
+                    done();
                 }).catch((e) => {
                     done(e);
                 });
