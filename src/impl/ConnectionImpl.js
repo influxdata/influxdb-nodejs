@@ -201,7 +201,7 @@ class ConnectionImpl {
         return ConnectionImpl.escape(v);
     }
 
-    static serializeTimestamp(t) {
+    serializeTimestamp(t) {
         switch(typeof t) {
             case 'string':
                 return t;
@@ -212,6 +212,8 @@ class ConnectionImpl {
                 return t.getTime()+'000000';
             case 'number':
                 return t+'000000';
+            case 'undefined':
+                return this.options.autoGenerateTimestamps ? new Date().getTime()+'000000' : '';
             default:
                 throw new InfluxDBError('Unsupported timestamp type:'+(typeof t));
         }
@@ -282,7 +284,7 @@ class ConnectionImpl {
             if(!fieldsDefined) invalidFieldsDefinition();
             // timestamp & new line
             stream.write(' ');
-            stream.write(ConnectionImpl.serializeTimestamp(dataPoint.timestamp));
+            stream.write(this.serializeTimestamp(dataPoint.timestamp));
             stream.write('\n');
         }
     }
@@ -342,7 +344,7 @@ class ConnectionImpl {
         if(dataPoints==null) return onBadArguments();
         if(!Array.isArray(dataPoints)) {
             if(typeof dataPoints==='object')
-                return write([dataPoints],forceFlush);
+                return this.write([dataPoints],forceFlush);
             else
                 throw new InfluxDBError('Invalid arguments supplied');
         }
