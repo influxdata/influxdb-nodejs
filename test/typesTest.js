@@ -1,6 +1,7 @@
 let assert = require('assert');
 let InfluxDB = require('../src/InfluxDB');
 let util = require('./utils.js')
+let InfluxDBError = require('../src/InfluxDBError')
 
 describe('InfluxDB.types', function () {
 
@@ -444,10 +445,16 @@ describe('InfluxDB.types', function () {
                 connection.connect().then(() => {
 
                     connection.write([dpB1, dpB2, dpB3, dpB4, dpB5]).then(() => {
-                        done()
+//                        done()
                     }).catch((e) => {
                         done(e)
                     });
+
+                    connection.flush().then(() => {
+                        done()
+                    }).catch((e) => {
+                        done(e)
+                    })
 
                 }).catch((e) => {
                     done(e)
@@ -643,7 +650,6 @@ describe('InfluxDB.types', function () {
         })
 
         it('should catch the invalid float type', function(done){
-
             cxni.connect().then(() => {
 
                 cxni.write([dpFlt]).catch((e) => {
@@ -653,7 +659,9 @@ describe('InfluxDB.types', function () {
                 cxni.flush().then(() => {
                     done(new Error('Managed to write value of type Float to field of type Integer'))
                 }).catch((e) => {
-//                    console.log('second write flush failed - which is correct: ' + e);
+//                    expect(e).to.be.an.instanceof('InfluxDBError') //use chai
+                    assert(e.message !== undefined)
+                    assert(e.data !== undefined)
                     done()
                 })
 

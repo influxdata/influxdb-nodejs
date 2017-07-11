@@ -45,32 +45,35 @@ describe('Connection test', function(){
 
         it('should read back and verify the data', function(done){
 
-            cxnaw.executeQuery('Select * from location').then((result) => {
-                console.log(result)
-                assert.equal(result.length, 3)
+            util.sleep(500).then(() => {
 
-                for(let dp of result){
-                    assert( dp.time !== undefined);
-                    switch(dp.unit){
-                        case 'adam-12':
-                            assert.equal(dp.coordinates, dp1.fields[0].value)
-                            break;
-                        case 'l-30':
-                            assert.equal(dp.coordinates, dp2.fields[0].value)
-                            break;
-                        case 'zebra-07':
-                            assert.equal(dp.coordinates, dp3.fields[0].value)
-                            break;
-                        default:
-                            assert.fail(dp.unit, dp.coordinates, 'Unexpected element in results array');
-                            break;
+                cxnaw.executeQuery('Select * from location').then((result) => {
+//                    console.log(result)
+                    assert.equal(result.length, 3)
+
+                    for(let dp of result){
+                        assert( dp.time !== undefined);
+                        switch(dp.unit){
+                            case 'adam-12':
+                                assert.equal(dp.coordinates, dp1.fields[0].value)
+                                break;
+                            case 'l-30':
+                                assert.equal(dp.coordinates, dp2.fields[0].value)
+                                break;
+                            case 'zebra-07':
+                                assert.equal(dp.coordinates, dp3.fields[0].value)
+                                break;
+                            default:
+                                assert.fail(dp.unit, dp.coordinates, 'Unexpected element in results array');
+                                break;
+                        }
                     }
-                }
 
-                done()
+                    done()
 
-            }).catch((e) => {
-                done(e)
+                }).catch((e) => {
+                    done(e)
+                })
             })
 
         })
