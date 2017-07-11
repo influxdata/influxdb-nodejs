@@ -44,10 +44,10 @@ module.exports={FieldType};
  *
  * It's recommended, but not required to use a schema; it is used to:
  *
- *    * Coerce your data (converting properly JavasSript Number to either floats or integers that are available
+ *    * Coerce your data (properly converting JavasSript Number to either floats or integers that are available
  *      in InfluxDB)
  *    * Provide immediate error feedback if data supplied to the {@Connection#write} method are not compliant
- *      with the schema. Error is signalled when there is a field/tag which is not present in your schema,
+ *      with the schema. An error is signalled when there is a field/tag which is not present in your schema,
  *      or the data type of a field does not match the schema.
  *
  * See {@link FieldType} for available field types.

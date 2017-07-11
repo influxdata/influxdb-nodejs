@@ -58,17 +58,17 @@ class Connection {
      *       in the connection buffer. In this case some writes are stored in the buffer only and
      *       when an error occurs during communication with InfluxDB the error will get propagated only:
      *       * To the write method promise that triggered communication with InfluxDB (either data point capacity
-     *       overrun or by calling write with parameter forceFlush=true)
+     *       overrun or by calling write with the parameter forceFlush=true)
      *       * To the promise returned by calling a flush method
      *       * To the error handler defined by {@link ConnectionConfiguration}.batchWriteErrorHandler when the
-     *         communication to InfluxDB is triggered by the condition when there is a data in the connection
+     *         communication to InfluxDB is triggered by the condition when there is data in the connection
      *         buffer older than time defined by {@link ConnectionConfiguration}.maximumWriteDelay
      *    2. (autoResolvePromisedWritesToCache=false) The promise is never resolved before the data points are
      *         successfully written into InfluxDB.
      *         In the case of communication failure you will receive as many errors as the number of
      *         invocations of {@link ConnectionConfiguration.write} since the last successful write to InfluxDB.
      *         This mode is useful when you need higher reliability of writes into InfluxDB (you may react accordingly
-     *         to each missed write). On the other hand applications that doesn't need a finer level of visibility
+     *         to each missed write). On the other hand applications that don't need a finer level of visibility
      *         would suffer from log pollution from error messages (one error for each batch write to InfluxDB might
      *         be enough).
      *         Also, this mode consumes more cpu and memory resources.
@@ -77,7 +77,7 @@ class Connection {
      * @param {DataPoint[]} dataPoints - an array of measurement points to write to InfluxDB
      * @param {Boolean} [forceFlush=false] - if true the internal data point cache gets flushed into InfluxDB right away.
      * @returns {Promise} - a promise that is evaluated when data are either written into InfluxDB or
-     * a i/o error occurs.
+     * an i/o error occurs.
      * @throws {InfluxDBError}
      *
      * @example
@@ -102,10 +102,10 @@ class Connection {
 
     /**
      * Execute query on InfluxDB
-     * @param {String} query text definition of the query, ex. 'select * from outdoorTemperature'.
+     * @param {String} query text definition of the query, e.g. 'select * from outdoorTemperature'.
      * @returns {Array} post-processed data so that these are easy to work with. The result is an array of objects where
      * fields and tags are stored as regular properties. There is also a time property holding the
-     * timestamp of the measurement as JavaScript Date object.
+     * timestamp of the measurement as a JavaScript Date object.
      * @throws {InfluxDBError}
      *
      * @example
@@ -128,7 +128,7 @@ class Connection {
 
     /**
      * Execute query on InfluxDB and get unmodified result JSON data
-     * @param {String} query text definition of the query, ex. 'select * from outdoorTemperature'
+     * @param {String} query text definition of the query, e.g. 'select * from outdoorTemperature'
      * @returns {Array} unmodified result JSON data as responded by InfluxDb
      * @throws {InfluxDBError}
      */
