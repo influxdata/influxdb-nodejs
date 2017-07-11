@@ -1,7 +1,7 @@
-let assert = require('assert');
-let InfluxDB = require('../src/InfluxDB');
-let util = require('./utils.js')
-let InfluxDBError = require('../src/InfluxDBError')
+const assert = require('assert');
+const InfluxDB = require('../src/InfluxDB');
+const util = require('./utils.js')
+//const InfluxDBError = require('../src/InfluxDBError').InfluxDBError
 
 describe('InfluxDB.types', function () {
 
@@ -584,6 +584,8 @@ describe('InfluxDB.types', function () {
                     done(new Error('Managed to write value of type String to field of type Float'))
                 }).catch((e) => {
 //                    console.log('second write flush failed - which is correct: ' + e);
+                    assert(e.message !== undefined)
+                    assert(e.data !== undefined)
                     done()
                 })
 
@@ -738,6 +740,8 @@ describe('InfluxDB.types', function () {
                     done(new Error('Managed to write value of type Float to field of type Boolean'))
                 }).catch((e) => {
 //                    console.log('second write flush failed - which is correct: ' + e);
+                    assert(e.message !== undefined)
+                    assert(e.data !== undefined)
                     done()
                 })
 
@@ -815,6 +819,8 @@ describe('InfluxDB.types', function () {
                     done(new Error('Managed to write value of type Float to field of type Boolean'))
                 }).catch((e) => {
 //                    console.log('second write flush failed - which is correct: ' + e);
+                    assert(e.message !== undefined)
+                    assert(e.data !== undefined)
                     done()
                 })
 
