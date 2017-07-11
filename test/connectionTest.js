@@ -237,6 +237,96 @@ describe('Connection test', function(){
 
         })
 
-    })
+    });
+
+    /*
+       1. should reliably write to influxdb
+       2. no need to call flush, wait for buffer to fill or timeout - returns only after write
+       3. should be slower than when set to true
+     */
+    describe("#autoResolvePromissedWritesToCache - false", function(){
+
+        let cxnauto = new InfluxDB.Connection({
+            database: 'test1',
+            autoResolvePromisedWritesToCache: true
+        })
+
+        let cxnwait = new InfluxDB.Connection({
+            database: 'test1',
+            autoResolvePromisedWritesToCache: false
+        })
+
+
+        let dps = util.buildDatapoints('temp',
+            [{name: 'thermometer', base: 'tmeter', type: 'string'}],
+            [{name: 'cels', base: 17, type: 'float'}],
+            3000)
+
+        let autoWriteTime = 0
+
+        // get initial time of autoResolvePromisedWritesToCache: true for later comparison
+        cxnauto.connect().then(() => {
+            let start = new Date().getTime();
+            cxnauto.write(dps).then(() => {
+                let end = new Date().getTime();
+                autoWriteTime = end - start;
+            }).catch((e) => {
+                 console.log('error', e)
+            })
+        }).catch((e) => {
+            console.log('error', e)
+        })
+
+        let result = util.dropMeasurement(cxnauto, 'temp');
+        //take a moment for transaction to complete otherwise lose connection object too soon in some cases
+        util.sleep(2000).then(() => { }); //should be dropped
+
+        it('should write points to server and then return promise', function(done){
+
+            let waitWriteTime = 0;
+
+            cxnwait.connect().then(() => {
+                let start = new Date().getTime()
+                cxnwait.write(dps).then(() => {
+                    let end = new Date().getTime()
+                    waitWriteTime = end - start;
+                    console.log(`autoResolvePromisedWritesToCache(false) ${util.pad(waitWriteTime,6,' ')}ms`);
+                    console.log(`autoResolvePromisedWritesToCache(true)  ${util.pad(autoWriteTime, 6, ' ')}ms`);
+                    console.log(`autoResolvePromisedWritesToCache(diff)  ${util.pad(waitWriteTime - autoWriteTime, 6, ' ')}ms`)
+                    assert( waitWriteTime > autoWriteTime)
+                    done()
+                }).catch((e) => {
+                    done(e)
+                })
+            }).catch((e) => {
+                done(e)
+            })
+
+        });
+
+        it('should read the points back', function(done){
+           cxnwait.connect().then(() => {
+
+               cxnwait.executeQuery('select * from temp').then((result) => {
+                   assert(result.length == dps.length)
+                   done()
+               }).catch((e) => {
+                   done(e)
+               })
+
+           }).catch((e) => {
+               done(e)
+           })
+        });
+
+        it('should drop the datapoints', function(done){
+
+            let result = util.dropMeasurement(cxnwait, 'temp');
+            //take a moment for transaction to complete otherwise lose connection object too soon in some cases
+            util.sleep(1000).then(() => { done(result)});
+
+        })
+
+    });
 
 });
