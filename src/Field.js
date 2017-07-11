@@ -44,19 +44,19 @@ module.exports={FieldType};
  *
  * It's recommended, but not required to use a schema; it is used to:
  *
- *    * Coerce your data (properly converting JavasSript Number to either floats or integers that are available
+ *    * Coerce your data (properly converting JavaScript Number to either floats or integers that are available
  *      in InfluxDB)
  *    * Provide immediate error feedback if data supplied to the {@Connection#write} method are not compliant
- *      with the schema. An error is signalled when there is a field/tag which is not present in your schema,
+ *      with the schema. An error is signaled when there is a field/tag which is not present in your schema,
  *      or the data type of a field does not match the schema.
  *
  * See {@link FieldType} for available field types.
  *
  * @typedef {Object} Schema
  * @property {String} measurement Name of the measurement
- * @property {Object[]} [fields] Field names and their corresponding types for the given measurement.If not defined
+ * @property {Object[]} [fields] Field names and their corresponding types for the given measurement. If left undefined
  *     no field validation will be executed.
- * @property {String[]} [tags] List of allowed tag names for the measurement. If not defined no tag validation
+ * @property {String[]} [tags] List of allowed tag names for the measurement. If left undefined no tag validation
  *     will be executed.
  * @example
  * const schema = {

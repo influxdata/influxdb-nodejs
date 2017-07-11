@@ -1,6 +1,6 @@
 /**
  * Tag is a key-value pair in InfluxDB’s data structure that records metadata.
- * See: https://docs.influxdata.com/influxdb/v1.2/concepts/glossary/#tag
+ * See: https://docs.influxdata.com/influxdb/latest/concepts/glossary/#tag
  *
  * @public
  * @typedef {Object} Tag

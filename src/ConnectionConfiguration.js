@@ -44,8 +44,8 @@
  * // a custom schema
  * const connection = new InfluxDB.Connection({
  *   database: 'my_db',
- *   username: 'connor',
- *   password: 'pa$$w0rd',
+ *   username: 'influxUser33',
+ *   password: 'awesomeflux!',
  *   hostUrl: 'http://db1.example.com:8086' },
  *   schema: [{
  *     measurement: 'serverLoad',

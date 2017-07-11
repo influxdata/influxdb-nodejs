@@ -80,8 +80,36 @@ describe('InfluxDB.timestamps', function(){
           })
       });
 
-      it('should handle undefined timestamps', function(done){
+      it('should handle undefined timestamps, autoGenerateTimestamps=false', function(done){
+          let connection = new InfluxDB.Connection({
+              database: 'test1',
+              autoGenerateTimestamps:false
+          });
+          connection.connect().then(() => {
+              connection.write({
+                  measurement: 'powerts',
+                  tags: [{ key: 'location', value: 'Turbine00312' }],
+                  fields: [{ key: 'kwatts', value: 47 }]
+              }).then(() => {
+                  connection.flush().then(() => {
+                      done();
+                  }).catch((e) => {
+                      done(e);
+                  });
+              }).catch((e) => {
+                  done(e);
+              })
+          }).catch((e) => {
+              done(e);
+          })
+      });
 
+
+      it('should handle undefined timestamps,autoGenerateTimestamps=true', function(done){
+          let connection = new InfluxDB.Connection({
+              database: 'test1',
+              autoGenerateTimestamps:true
+          });
           connection.connect().then(() => {
               connection.write({
                   measurement: 'powerts',
