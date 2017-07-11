@@ -11,6 +11,7 @@ client = docker.from_env()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("protocol", help="http or https should be specified")
+parser.add_argument("--version", default="latest", help="version of influxdb to pull e.g 1.2.4, 1.3, 1.4")
 parser.add_argument("--admin", help="admin user name")
 parser.add_argument("--password", "--pw", help="admin user password")
 parser.add_argument("--nopull", help="do not pull new image")
@@ -24,9 +25,9 @@ def pull_image():
     if args.nopull:
         print("Not pulling new image")
         return
-    print("Pulling latest influxdb image")
+    print("Pulling influxdb image ", args.version)
 
-    client.images.pull('influxdb', 'latest')
+    client.images.pull('influxdb', args.version)
     image = client.images.get('influxdb')
     print("Pulled: " + image.id)
 
@@ -44,7 +45,7 @@ def start_https():
     return container
 
 def start_http():
-    container = client.containers.run('influxdb', detach=True, ports={8086:8086,8083:8083})
+    container = client.containers.run('influxdb:'+ args.version, detach=True, ports={8086:8086,8083:8083})
     return container
 
 def set_admin_account(name, password, container):
