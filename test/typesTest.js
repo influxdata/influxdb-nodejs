@@ -659,7 +659,6 @@ describe('InfluxDB.types', function () {
                 cxni.flush().then(() => {
                     done(new Error('Managed to write value of type Float to field of type Integer'))
                 }).catch((e) => {
-//                    expect(e).to.be.an.instanceof('InfluxDBError') //use chai
                     assert(e.message !== undefined)
                     assert(e.data !== undefined)
                     done()
