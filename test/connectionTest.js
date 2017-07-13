@@ -329,4 +329,107 @@ describe('Connection test', function(){
 
     });
 
+    describe('#autoCreateDatabase: false', function(){
+
+        let existingdb = "reified"
+        let nonexistingdb = "phantomdb"
+
+        let cxnnoexist = new InfluxDB.Connection({
+            database: nonexistingdb,
+            autoCreateDatabase: false
+        });
+
+        let cxnsetup = new InfluxDB.Connection({
+            database: existingdb,
+            autoCreateDatabase: true
+        });
+
+        let cxnexist = new InfluxDB.Connection({
+            database: existingdb,
+            autoCreateDatabase: false
+        });
+
+        let testdp = {
+            measurement: 'flips',
+            timestamp: new Date(),
+            tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
+            fields: [{ key: 'flops' , value: '99'}]
+        }
+
+        it('should set up a preexisting database', function(done){
+            cxnsetup.connect().then(() => {
+                done()
+            }).catch((e) => {
+                done(e)
+            })
+        });
+
+        it('should fail to write to a non-existant database', function(done){
+
+            cxnnoexist.connect().then(() => {
+                cxnnoexist.write([testdp]).then((result) => {
+                    console.log(result)
+                    cxnnoexist.executeQuery('SHOW DATABASES').then((result) => {
+                        done(new Error(`No error on write to the nonexistant database ${nonexistingdb}. Current Databases are ${JSON.stringify(result)}` ))
+                    }).catch((e) => {
+                        done(new Error(`No error on write to the nonexistant database ${nonexistingdb}. ${e}`))
+                    })
+
+                }).catch((e) => {
+                    done()
+                })
+            }).catch((e) => {
+                done(e)
+            })
+
+        });
+
+        it('should write to an existing database', function(done){
+            cxnexist.connect().then(() => {
+                cxnexist.write([testdp],true).then(() => {
+                    done()
+                }).catch((e) => {
+                    done(e)
+                })
+
+            }).catch((e) => {
+                done(e)
+            })
+        })
+
+        it('should read back the data from the existing database', function(done){
+            util.sleep(500).then(() => {
+                cxnexist.connect().then(() => {
+                    cxnexist.executeQuery('select * from flips').then((result) => {
+                        try {
+                            assert(result.length > 0)
+                            done()
+                        }catch(e){
+                            done(e)
+                        }
+                    }).catch((e) => {
+                        done(e)
+                    })
+                }).catch((e) => {
+                    done(e)
+                })
+            })
+        })
+
+        it('should drop the database just created', function(done){
+            //wait to make sure other operations have completed
+            util.sleep(1000).then(() => {
+                cxnsetup.connect().then(() => {
+                    cxnsetup.executeQuery(`DROP DATABASE ${existingdb}`).then(() => {
+                        done()
+                    }).catch((e) => {
+                        done(e)
+                    })
+
+                })
+            })
+        })
+
+    })
+
 });
