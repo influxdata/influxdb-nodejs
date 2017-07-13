@@ -1,6 +1,7 @@
 //import * as request from "request";
 const request = require('request');
 const streamBuffers = require('stream-buffers');
+
 const FieldType = require('../Field').FieldType;
 const InfluxDBError = require('../InfluxDBError').InfluxDBError;
 
@@ -18,12 +19,12 @@ class ConnectionImpl {
     // the user. Also convert tags to a map for faster access during serialization
     processSchemas() {
         this.schemas={};
-        let schemas=this.options.schema;
+        const schemas=this.options.schema;
         this.options.schema=[];
         if(schemas!==undefined)
         {
             for(let originalSchema of schemas) {
-                let connectionSchema={};
+                const connectionSchema={};
                 if(originalSchema.measurement===undefined)
                     throw new InfluxDBError('Each data point schema must have "measurement" property defined');
                 connectionSchema.measurement=originalSchema.measurement;
@@ -51,14 +52,14 @@ class ConnectionImpl {
             console.error('Warning: there are still cached data points to be written into InfluxDB, '+
                 'but the process is about to exit. Forgot to call Connection.flush() ?');
         }
-        for(let promise of this.cachedPromises) {
-            let e=new InfluxDBError('Can\'t write data points to InfluxDB, process is exiting');
-            promise[REJECT](e);
+        for(let promise of this.bufferedWritesPromises) {
+            const error=new InfluxDBError('Can\'t write data points to InfluxDB, process is exiting');
+            promise[REJECT](error);
         }
     }
 
     registerShutdownHook() {
-        if(ConnectionImpl.activeConnections==undefined) {
+        if(ConnectionImpl.activeConnections===undefined) {
             ConnectionImpl.connectionIdGenerator=0;
             ConnectionImpl.activeConnections={};
             process.on('exit', () => {
@@ -71,7 +72,7 @@ class ConnectionImpl {
     }
 
     constructor(options) {
-        if(options.database===undefined) throw new InfluxDBError('database option must be specified');
+        if(options.database===undefined) throw new InfluxDBError("'database' option must be specified");
         this.options = Object.assign({
             username:'root',
             password:'root',
@@ -81,8 +82,7 @@ class ConnectionImpl {
             maximumWriteDelay:1000,
             batchSize:1000,
             batchWriteErrorHandler(e, dataPoints) {
-                console.error('[DefaultBatchWriteErrorHandler] Error writing data points into InfluxDB:'+
-                    dataPoints,e);
+                console.error(`Error writing data points into InfluxDB:\n${dataPoints}`,e);
             }
         }, options);
 
@@ -96,7 +96,7 @@ class ConnectionImpl {
         // cache is flushed. The values are arrays of resolve/reject function of the promise:
         // [resolve function, reject function]
         // The RESOLVE and REJECT variables can be used as index to get either the resolve or reject function
-        this.cachedPromises=[];
+        this.bufferedWritesPromises=[];
         this.connected = !this.options.autoCreateDatabase;
 
         this.registerShutdownHook();
@@ -136,7 +136,7 @@ class ConnectionImpl {
 
     serializeFieldValue(value, fieldName, dataPoint) {
         let requiredType=undefined;
-        let schema=this.schemas[dataPoint.measurement];
+        const schema=this.schemas[dataPoint.measurement];
         if(schema!==undefined && schema.fields!==undefined) {
             requiredType=schema.fields[fieldName];
             if(requiredType===undefined)
@@ -185,37 +185,37 @@ class ConnectionImpl {
                     }
                     return value+'i';
                 default:
-                    throw new InfluxDBError('Unsupported value type:'+(typeof value));
+                    throw new InfluxDBError(`Unsupported value type: ${typeof value}`);
             }
         }
     }
 
-    serializeTagValue(v,key,dataPoint) {
-        if((typeof v)!=='string') throw new InfluxDBError('Invalid tag value type, must be a string');
-        let schema=this.schemas[dataPoint.measurement];
+    serializeTagValue(value,key,dataPoint) {
+        if((typeof value)!=='string') throw new InfluxDBError('Invalid tag value type, must be a string');
+        const schema=this.schemas[dataPoint.measurement];
         if(schema!==undefined && schema.tagsDictionary!==undefined
             && schema.tagsDictionary[key]===undefined) {
-            throw new InfluxDBError(`Tag value '${v}' is not allowed for measurement `+
+            throw new InfluxDBError(`Tag value '${value}' is not allowed for measurement `+
                 `${dataPoint.measurement} based on schema.`);
         }
-        return ConnectionImpl.escape(v);
+        return ConnectionImpl.escape(value);
     }
 
-    serializeTimestamp(t) {
-        switch(typeof t) {
+    serializeTimestamp(timestamp) {
+        switch(typeof timestamp) {
             case 'string':
-                return t;
+                return timestamp;
             case 'object':
-                if((typeof t.getTime)!=='function')
+                if((typeof timestamp.getTime)!=='function')
                     throw new InfluxDBError('Timestamp is an object but it has to declare getTime() method as well'+
                       'Perhaps you intended to supply a Date object, but it has not been received.');
-                return t.getTime()+'000000';
+                return timestamp.getTime()+'000000';
             case 'number':
-                return t+'000000';
+                return timestamp+'000000';
             case 'undefined':
                 return this.options.autoGenerateTimestamps ? new Date().getTime()+'000000' : '';
             default:
-                throw new InfluxDBError('Unsupported timestamp type:'+(typeof t));
+                throw new InfluxDBError(`Unsupported timestamp type: ${typeof timestamp}`);
         }
     }
 
@@ -272,7 +272,7 @@ class ConnectionImpl {
                 }
             } else if((typeof dataPoint.fields)==='object') {
                 for(let fieldKey in dataPoint.fields) {
-                    let value=dataPoint.fields[fieldKey];
+                    const value=dataPoint.fields[fieldKey];
                     if(value!=undefined) {
                         stream.write(ConnectionImpl.escape(fieldKey));
                         stream.write('=');
@@ -323,7 +323,7 @@ class ConnectionImpl {
                     resolve();
                 }
                 else {
-                    this.cachedPromises.push([resolve,reject]);
+                    this.bufferedWritesPromises.push([resolve,reject]);
                 }
             });
         }
@@ -334,7 +334,7 @@ class ConnectionImpl {
 
     write(dataPoints,forceFlush) {
 
-        let onBadArguments=() => {
+        const onBadArguments=() => {
             if(forceFlush)
                 return this.flushOnInternalRequest(dataPoints);
             else
@@ -395,14 +395,14 @@ class ConnectionImpl {
         this.cache=undefined;
         this.cachedBatchSize=undefined;
         this.cacheAge=undefined;
-        let promises=this.cachedPromises;
-        this.cachedPromises=[];
+        const bufferedWritesPromisesToHandle=this.bufferedWritesPromises;
+        this.bufferedWritesPromises=[];
         // shutdown hook doesn't need to track this connection any more
         delete ConnectionImpl.activeConnections[this.id];
 
-        let db=this.options.database;
+        const db=this.options.database;
         if(db===undefined) throw new InfluxDBError('Assertion failed: database not specified');
-        let url=this.hostUrl+'/write?db='+db;
+        const url=`${this.hostUrl}/write?db=${db}`;
 
         return new Promise((resolve, reject) => {
             let bodyBuffer=cachedDataStream.getContents();
@@ -419,14 +419,14 @@ class ConnectionImpl {
                 (error, result) => {
                     if(error) {
                         reject(error);
-                        for(let promise of promises) {
+                        for(let promise of bufferedWritesPromisesToHandle) {
                             promise[REJECT](error);
                         }
                     }
                     else {
                         if(result.statusCode>=200 && result.statusCode<400) {
                             resolve();
-                            for(let promise of promises) {
+                            for(let promise of bufferedWritesPromisesToHandle) {
                                 promise[RESOLVE]();
                             }
                         }
@@ -438,7 +438,7 @@ class ConnectionImpl {
                             catch(e) {}
                             let error=new InfluxDBError(message, bodyBuffer.toString());
                             reject(error);
-                            for(let promise of promises) {
+                            for(let promise of bufferedWritesPromisesToHandle) {
                                 promise[REJECT](error);
                             }
                         }
@@ -454,19 +454,10 @@ class ConnectionImpl {
 
     executeRawQuery(query,database) {
         return new Promise((resolve, reject) => {
-            let url=this.hostUrl;
-            url+='/query?';
-            let db;
-            if(database===undefined) {
-                db=this.options.database;
-            }
-            else
-            {
-                db=database;
-            }
-            url+='db='+encodeURIComponent(db)+'&';
+            const db=!database ? this.options.database : database;
+            const url=`${this.hostUrl}/query?db=${encodeURIComponent(db)}&q=${encodeURIComponent(query)}`;
             request.post({
-                    url: url+'q='+encodeURIComponent(query),
+                    url: url,
                     auth: {
                         user: this.options.username,
                         pass: this.options.password
@@ -480,7 +471,7 @@ class ConnectionImpl {
                         if(result.statusCode>=200 && result.statusCode<400) {
                             let contentType=result.headers['content-type'];
                             if(contentType==='application/json') {
-                                let data=JSON.parse(result.body);
+                                const data=JSON.parse(result.body);
                                 if(data.results[0].error) reject(new InfluxDBError(data.results[0].error));
                                 resolve(data);
                             }
@@ -489,8 +480,8 @@ class ConnectionImpl {
                             }
                         }
                         else {
-                            let e=new InfluxDBError(result.statusCode+' communication error');
-                            reject(e);
+                            const error=new InfluxDBError(result.statusCode+' communication error');
+                            reject(error);
                         }
                     }
                 }
@@ -499,31 +490,31 @@ class ConnectionImpl {
     }
 
     postProcessQueryResults(results) {
-        let outcome=[];
+        const outcome=[];
         for(let result of results.results)
         {
             if(result.series)
-            for(let s of result.series) {
-                for(let v of s.values) {
+            for(let series of result.series) {
+                for(let values of series.values) {
                     let result={ };
                     let i=0;
-                    for(let c of s.columns) {
-                        if(c==='time') {
+                    for(let columnName of series.columns) {
+                        if(columnName==='time') {
                             try {
-                                result[c]=new Date(v[i]);
+                                result[columnName]=new Date(values[i]);
                             }
                             catch(e) {
-                                result[c]=v[i];
+                                result[columnName]=values[i];
                             }
                         }
                         else {
-                            result[c]=v[i];
+                            result[columnName]=values[i];
                         }
                         i++;
                     }
-                    if(s.tags!==undefined) {
-                        for(let t in s.tags) {
-                            result[t]=s.tags[t];
+                    if(series.tags!==undefined) {
+                        for(let tagName in series.tags) {
+                            result[tagName]=series.tags[tagName];
                         }
                     }
                     outcome.push(result);
@@ -546,18 +537,19 @@ class ConnectionImpl {
     connect() {
         return new Promise((resolve, reject) => {
             if (this.options.autoCreateDatabase) {
-                let p = this.executeRawQuery('SHOW DATABASES');
-                p.then((result) => {
-                    let values = result.results[0].series[0].values;
+                const promise = this.executeRawQuery('SHOW DATABASES');
+                promise.then((result) => {
+                    const values = result.results[0].series[0].values;
                     for (let value of values) {
                         if (value[0] === this.options.database) {
                             this.connected = true;
+                            // the database the user wants to use already exists
                             resolve();
                             return;
                         }
                     }
-
-                    let createPromise = this.executeQuery(`CREATE DATABASE ${this.options.database};`);
+                    // If the database doesn't already exist, create it
+                    const createPromise = this.executeQuery(`CREATE DATABASE ${this.options.database};`);
                     createPromise.then(() => {
                         this.connected = true;
                         resolve();

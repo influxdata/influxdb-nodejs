@@ -13,10 +13,10 @@
  *   * String - nanosecond-precision Unix time as a string. See https://github.com/sazze/node-nanotime if you need to
  *            generate these in Nodejs
  * @property {Tag[]|Object} tags Tags to be stored together with the data point. Two formats are supported:
- *    * either an array of objects with key/value properties (see the example below) or an object where it's property
+ *    * either an array of objects with key/value properties (see the example below) or an object where its property
  *      keys serve as tag keys and object property values as tag values
  * @property {Field[]|Object} fields Fields to be stored together with the data point. Two formats are supported:
- *    * either an array of objects with key/value properties (see the example below) or an object where it's property
+ *    * either an array of objects with key/value properties (see the example below) or an object where its property
  *      keys serve as field keys and object property values as field values
  *
  * @example

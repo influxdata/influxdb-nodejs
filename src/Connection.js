@@ -1,4 +1,4 @@
-//import InfluxDBConnectionImpl from './impl/InfluxDbConnectionImpl';
+//import InfluxDBConnectionImpl from './impl/InfluxDBConnectionImpl';
 let ConnectionImpl=require('./impl/ConnectionImpl');
 
 
@@ -23,7 +23,7 @@ class Connection {
 
     /**
      * Verify the connection to InfluxDB is available. If you don't call this method on your own, it will be
-     * called automatically before first write to InfluxDB.
+     * called automatically before the first write to InfluxDB.
      *
      * @returns {Promise}
      * @throws {InfluxDBError}
@@ -35,8 +35,8 @@ class Connection {
     /**
      * Write measurement data points into InfluxDB.
      *
-     * By default data points submitted are stored in an internal buffer of the connection. This buffer gets flushed
-     * into InfluxDB by four different means:
+     * By default data submitted for writing is buffered on the {@link Connection} object, to be written as a batch.
+     * This buffer gets flushed and batch-written to InfluxDB when one of the following conditions are met:
      *
      *    1. Once its data point capacity has been reached (It is configured using
      *       {@link ConnectionConfiguration}.batchSize when creating the connection)
@@ -47,28 +47,28 @@ class Connection {
      *    4. When you call the {@link Connection.write} method with the optional parameter forceFlush=true
      *
      *
-     * You may disable the batching feature by setting any of the two parameters
-     * {@link ConnectionConfiguration}.batchSize, {@link ConnectionConfiguration}.maximumWriteDelay to 0.
-     * After that, writes to InfluxDB will be initiated during the call to the {@link Connection.write} method.
+     * You may disable the batch writes by setting {@link ConnectionConfiguration}.batchSize or
+     * {@link ConnectionConfiguration}.maximumWriteDelay to 0.
+     * If batch writes are disabled, writes to InfluxDB will be initiated at each invocation of {@link Connection.write}.
      *
      * The function returns a promise. There are two ways promises are resolved
      * (distinguished by {@link ConnectionConfiguration}.autoResolvePromisedWritesToCache):
      *
-     *    1. (autoResolvePromisedWritesToCache=true, Default) The promise gets resolved as the data points are stored
-     *       in the connection buffer. In this case some writes are stored in the buffer only and
-     *       when an error occurs during communication with InfluxDB the error will get propagated only:
+     *    1. (autoResolvePromisedWritesToCache=true, Default) The promise gets resolved when the data points are stored
+     *       in the connection buffer. In this case, some writes are stored in the buffer only to be batch-written.
+     *       If an error occurs during communication with InfluxDB the error will propagate as follows:
      *       * To the write method promise that triggered communication with InfluxDB (either data point capacity
      *       overrun or by calling write with the parameter forceFlush=true)
-     *       * To the promise returned by calling a flush method
-     *       * To the error handler defined by {@link ConnectionConfiguration}.batchWriteErrorHandler when the
-     *         communication to InfluxDB is triggered by the condition when there is data in the connection
-     *         buffer older than time defined by {@link ConnectionConfiguration}.maximumWriteDelay
+     *       * To the promise returned by invoking {@link Connection.flush}
+     *       * To the error handler defined by {@link ConnectionConfiguration}.batchWriteErrorHandler in the case the
+     *         communication to InfluxDB is triggered when there is data in the connection
+     *         buffer older than the delay defined by {@link ConnectionConfiguration}.maximumWriteDelay
      *    2. (autoResolvePromisedWritesToCache=false) The promise is never resolved before the data points are
      *         successfully written into InfluxDB.
      *         In the case of communication failure you will receive as many errors as the number of
      *         invocations of {@link ConnectionConfiguration.write} since the last successful write to InfluxDB.
-     *         This mode is useful when you need higher reliability of writes into InfluxDB (you may react accordingly
-     *         to each missed write). On the other hand applications that don't need a finer level of visibility
+     *         This mode is useful when you need finer visibility into the writes to InfluxDB (you may respond accordingly
+     *         to each missed write). On the other hand applications that don't require finer visibility
      *         would suffer from log pollution from error messages (one error for each batch write to InfluxDB might
      *         be enough).
      *         Also, this mode consumes more cpu and memory resources.
@@ -76,7 +76,7 @@ class Connection {
      *
      * @param {DataPoint[]} dataPoints - an array of measurement points to write to InfluxDB
      * @param {Boolean} [forceFlush=false] - if true the internal data point cache gets flushed into InfluxDB right away.
-     * @returns {Promise} - a promise that is evaluated when data are either written into InfluxDB or
+     * @returns {Promise} - a promise that is evaluated when data is either written into InfluxDB or
      * an i/o error occurs.
      * @throws {InfluxDBError}
      *
@@ -127,9 +127,9 @@ class Connection {
     }
 
     /**
-     * Execute query on InfluxDB and get unmodified result JSON data
+     * Execute query on InfluxDB and get unmodified JSON data result
      * @param {String} query text definition of the query, e.g. 'select * from outdoorTemperature'
-     * @returns {Array} unmodified result JSON data as responded by InfluxDb
+     * @returns {Array} unmodified JSON response data
      * @throws {InfluxDBError}
      */
     executeRawQuery(query) {
