@@ -62,7 +62,7 @@ npm test
 # 2171  docker kill sharp_spence
  ```
  
- ### Start a new Influxdb docker and specify its version
+### Start a new Influxdb docker and specify its version
  
  ```bash
 cd -
@@ -71,3 +71,14 @@ cd -
 cd ..
 npm test
 ```
+### Run coverage
+
+Coverage is measured using babel-istanbul.  
+
+```bash
+npm run coverage
+```
+
+The coverage report can be accessed at './coverage/lcov-report/index.html'.
+ 
+

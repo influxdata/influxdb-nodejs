@@ -16,7 +16,8 @@
     "test": "cross-env BABEL_ENV=commonjs mocha --compilers js:babel-register --recursive",
     "test:watch": "npm test -- --watch",
     "doc:watch": "esdoc",
-    "build": "cross-env BABEL_ENV=commonjs babel src --out-dir lib"
+    "build": "cross-env BABEL_ENV=commonjs babel src --out-dir lib",
+    "coverage": "cross-env babel-istanbul cover ./node_modules/mocha/bin/_mocha -- --recursive"
   },
   "repository": {
     "type": "git",
@@ -32,6 +33,7 @@
     "babel": "^6.5.2",
     "babel-cli": "^6.14.0",
     "babel-eslint": "^7.0.0",
+    "babel-istanbul": "^0.12.2",
     "babel-plugin-add-module-exports": "^0.2.1",
     "babel-preset-es2015": "^6.14.0",
     "babel-preset-stage-2": "^6.13.0",
@@ -39,6 +41,7 @@
     "chai": "^3.5.0",
     "cross-env": "^3.0.0",
     "esdoc-node": "^1.0.2",
+    "istanbul": "^0.4.5",
     "mocha": "^3.0.2"
   },
   "dependencies": {
