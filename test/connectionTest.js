@@ -368,7 +368,6 @@ describe('Connection test', function(){
 
             cxnnoexist.connect().then(() => {
                 cxnnoexist.write([testdp]).then((result) => {
-                    console.log(result)
                     cxnnoexist.executeQuery('SHOW DATABASES').then((result) => {
                         done(new Error(`No error on write to the nonexistant database ${nonexistingdb}. Current Databases are ${JSON.stringify(result)}` ))
                     }).catch((e) => {
@@ -428,6 +427,84 @@ describe('Connection test', function(){
 
                 })
             })
+        })
+
+    })
+
+    describe('#Disable batching', function(){
+
+        it('should automatically write when batch size is 0', function(done){
+
+            let cxnbatch0 = new InfluxDB.Connection({
+                database: 'test2',
+                batchSize: 0
+            })
+
+            let testdp = {
+                measurement: 'flips',
+                timestamp: new Date(),
+                tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
+                fields: [{ key: 'flops' , value: '99'}]
+            }
+
+            cxnbatch0.connect().then(() => {
+
+                cxnbatch0.write([testdp]).then(() => {
+                    util.sleep(500).then(() => {
+                        cxnbatch0.executeQuery("SELECT * FROM flips").then((result) => {
+                            try{
+                                assert(result.length > 0);
+                                done(util.dropMeasurement(cxnbatch0, 'flips'))
+                            }catch(e){
+                                done(e)
+                            }
+                        })
+                    })
+                }).catch((e) => {
+                    done(e)
+                })
+
+            }).catch((e) => {
+                done(e)
+            })
+
+        })
+
+        it('Should automatically write when minimumWriteDelay is 0', function(done){
+
+            let cxndelay0 = new InfluxDB.Connection({
+                database: 'test2',
+                maximumWriteDelay: 0
+            })
+
+            let testdp = {
+                measurement: 'flops',
+                timestamp: new Date(),
+                tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
+                fields: [{ key: 'flips' , value: '99'}]
+            }
+
+            cxndelay0.connect().then(() => {
+
+                cxndelay0.write([testdp]).then(() => {
+                    util.sleep(500).then(() => {
+                        cxndelay0.executeQuery("SELECT * FROM flops").then((result) => {
+                            try{
+                                assert(result.length > 0);
+                                done(util.dropMeasurement(cxndelay0, 'flops'))
+                            }catch(e){
+                                done(e)
+                            }
+                        })
+                    })
+                }).catch((e) => {
+                    done(e)
+                })
+
+            }).catch((e) => {
+                done(e)
+            })
+
         })
 
     })
