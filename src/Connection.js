@@ -23,7 +23,7 @@ class Connection {
 
     /**
      * Verify the connection to InfluxDB is available. If you don't call this method on your own, it will be
-     * called automatically before first write to InfluxDB.
+     * called automatically before the first write to InfluxDB.
      *
      * @returns {Promise}
      * @throws {InfluxDBError}
@@ -36,7 +36,7 @@ class Connection {
      * Write measurement data points into InfluxDB.
      *
      * By default data submitted for writing is buffered on the {@link Connection} object, to be written as a batch.
-     * This buffer gets flushed and batch-written to InfluxDB under when one of the following conditions are met:
+     * This buffer gets flushed and batch-written to InfluxDB when one of the following conditions are met:
      *
      *    1. Once its data point capacity has been reached (It is configured using
      *       {@link ConnectionConfiguration}.batchSize when creating the connection)
@@ -67,7 +67,7 @@ class Connection {
      *         successfully written into InfluxDB.
      *         In the case of communication failure you will receive as many errors as the number of
      *         invocations of {@link ConnectionConfiguration.write} since the last successful write to InfluxDB.
-     *         This mode is useful when you need finer visibility into writes to InfluxDB (you may respond accordingly
+     *         This mode is useful when you need finer visibility into the writes to InfluxDB (you may respond accordingly
      *         to each missed write). On the other hand applications that don't require finer visibility
      *         would suffer from log pollution from error messages (one error for each batch write to InfluxDB might
      *         be enough).
@@ -127,7 +127,7 @@ class Connection {
     }
 
     /**
-     * Execute query on InfluxDB and get unmodified result JSON data
+     * Execute query on InfluxDB and get unmodified JSON data result
      * @param {String} query text definition of the query, e.g. 'select * from outdoorTemperature'
      * @returns {Array} unmodified JSON response data
      * @throws {InfluxDBError}
