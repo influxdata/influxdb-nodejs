@@ -15,11 +15,21 @@ parser.add_argument("--version", default="latest", help="version of influxdb to 
 parser.add_argument("--admin", help="admin user name")
 parser.add_argument("--password", "--pw", help="admin user password")
 parser.add_argument("--nopull", help="do not pull new image")
+parser.add_argument("--name", default="influxdb", help="name for the container")
 args = parser.parse_args()
 
 def success_start_msg(container):
     print("Container {0} is now running.".format(container))
     print("To follow the logs use 'docker logs -f {0}'".format(container.name))
+
+def remove_existing_container():
+    #client.containers.prune(filters={"name":"influxdb"}) # + args.name)
+    print("killing old container {0}".format(args.name))
+    p = subprocess.Popen(['docker', 'kill', args.name])
+    p.wait()
+    print("Removing old container {0}".format(args.name))
+    p = subprocess.Popen(['docker', 'rm', args.name])
+    p.wait()
 
 def pull_image():
     if args.nopull:
@@ -45,7 +55,7 @@ def start_https():
     return container
 
 def start_http():
-    container = client.containers.run('influxdb:'+ args.version, detach=True, ports={8086:8086,8083:8083})
+    container = client.containers.run('influxdb:'+ args.version, detach=True, ports={8086:8086,8083:8083}, name=args.name)
     return container
 
 def set_admin_account(name, password, container):
@@ -70,6 +80,7 @@ def set_admin_account(name, password, container):
         container.restart()
 
 pull_image()
+remove_existing_container()
 
 if args.protocol == 'https':
     ctr = start_https()
