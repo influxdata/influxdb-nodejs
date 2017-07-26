@@ -1,3 +1,6 @@
+const exec = require("child_process").exec
+let docker_process;
+
 function getFieldType(fields, fieldname){
 
     for(let f of fields){
@@ -102,4 +105,44 @@ function pad(n, width, z) {
     return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
 }
 
-module.exports={ getFieldType, dropMeasurement, buildDatapoints, sleep, pad };
+/**
+ *
+ * @param args - array of arguments to the python script
+ *    valid arguments:
+ *       * http || https
+ *       * --version VERSION version of influxdb to pull - default 'latest'
+ *       * --admin ADMIN admin user name
+ *       * --password PASSWORD admin password
+ *       * --nopull NOPULL do not pull new image
+ *       * --name NAME of the container - default 'influxdb'
+ */
+function start_docker_influxdb(args){
+
+    let py_args = [__dirname + '/../scripts/test-server.py', args]
+
+    console.log("(re)starting influxbd docker container " + py_args)
+
+    //docker_process = exec('python3', py_args)
+    docker_process = exec(`${__dirname}/../scripts/test-server.py ${args}`)
+
+    let stdout = ''
+    docker_process.stdout.on('data', function(data){
+        stdout += data.toString()
+    })
+
+    docker_process.on('close', () => {
+        console.log("docker process closed ", stdout)
+    })
+
+    //wait a 30 secs for server to start
+    console.log("Waiting 30 seconds for influxdb server to start")
+    sleep(30000).then(() => {
+
+        // console.log('STDOUT ' + stdout)
+        console.log(`started influxdb server with args ${args}`)
+
+    })
+
+}
+
+module.exports={ getFieldType, dropMeasurement, buildDatapoints, sleep, pad, start_docker_influxdb };

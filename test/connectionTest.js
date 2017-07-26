@@ -1,6 +1,6 @@
 let assert = require('assert');
 let InfluxDB=require('../src/InfluxDB');
-let util = require('./utils.js')
+let util = require('../scripts/utils.js')
 
 describe('Connection test', function(){
 
@@ -367,11 +367,21 @@ describe('Connection test', function(){
         it('should fail to write to a non-existant database', function(done){
 
             cxnnoexist.connect().then(() => {
-                cxnnoexist.write([testdp]).then((result) => {
-                    cxnnoexist.executeQuery('SHOW DATABASES').then((result) => {
-                        done(new Error(`No error on write to the nonexistant database ${nonexistingdb}. Current Databases are ${JSON.stringify(result)}` ))
+                cxnnoexist.write([testdp]).then(() => {
+
+                    cxnnoexist.flush().then(() => {
+
+                        cxnnoexist.executeQuery('SHOW DATABASES').then((result) => {
+                            done(new Error(`No error on write to the nonexistant database ${nonexistingdb}. Current Databases are ${JSON.stringify(result)}` ))
+                        }).catch((e) => {
+                            //done(new Error(`No error on write to the nonexistant database ${nonexistingdb}. ${e}`))
+                            done(e)
+                        })
+
                     }).catch((e) => {
-                        done(new Error(`No error on write to the nonexistant database ${nonexistingdb}. ${e}`))
+                        //should not be able to flush to non existant database
+                        console.log(`Flush to non-existant database resulted in failure: ${e}`)
+                        done()
                     })
 
                 }).catch((e) => {
@@ -507,6 +517,47 @@ describe('Connection test', function(){
 
         })
 
-    })
+    });
+
+    /*
+    2017.07.20 not yet implemented
+
+    describe("Connect over UDP", function(){
+
+        let cxnudp = new InfluxDB.Connection({
+            database: 'udptest',
+            hostUrl: 'udp://127.0.0.1:8089'
+        });
+
+        let testdps = util.buildDatapoints('effective-light',
+            [{name: 'array', base: 'baker-', type: 'string'}],
+            [{name: 'lumens', base: 0, type: 'float'}],
+            300) //force buffer to flush three times in succession
+
+
+        it('shoud write to the database over udp', function(done){
+
+            cxnudp.connect().then(() => {
+                cxnudp.write(testdps).then(() => {
+                    cxnudp.flush().then(() => {
+                        cxnudp.executeQuery('Select * from effective-light').then((result) => {
+                            //done(util.dropMeasurement(cxnudp))
+                        }).catch((e) => {
+                            done(e)
+                        })
+                    }).catch((e) => {
+                        done(e)
+                    })
+                }).catch((e) => {
+                    done(e)
+                })
+            }).catch((e) => {
+                done(e)
+            })
+
+        })
+
+    });
+    */
 
 });
