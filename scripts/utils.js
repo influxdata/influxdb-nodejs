@@ -1,4 +1,6 @@
 const exec = require("child_process").exec
+const testconf = require('../etc/testconf.json')
+
 let docker_process;
 
 function getFieldType(fields, fieldname){
@@ -123,7 +125,8 @@ function start_docker_influxdb(args){
     console.log("(re)starting influxbd docker container " + py_args)
 
     //docker_process = exec('python3', py_args)
-    docker_process = exec(`${__dirname}/../scripts/test-server.py ${args}`)
+//    docker_process = exec(`${__dirname}/../scripts/test-server.py ${args}`)
+    docker_process = exec(__dirname + '/../scripts/test-server.py https');
 
     let stdout = ''
     docker_process.stdout.on('data', function(data){
@@ -145,4 +148,4 @@ function start_docker_influxdb(args){
 
 }
 
-module.exports={ getFieldType, dropMeasurement, buildDatapoints, sleep, pad, start_docker_influxdb };
+module.exports={ getFieldType, dropMeasurement, buildDatapoints, sleep, pad, start_docker_influxdb, testconf };

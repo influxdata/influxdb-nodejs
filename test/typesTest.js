@@ -1,6 +1,6 @@
 const assert = require('assert');
 const InfluxDB = require('../src/InfluxDB');
-const util = require('./utils.js')
+const util = require('../scripts/utils.js');
 //const InfluxDBError = require('../src/InfluxDBError').InfluxDBError
 
 describe('InfluxDB.types', function () {
