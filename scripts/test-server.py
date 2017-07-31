@@ -5,7 +5,11 @@ import sys
 import argparse
 import subprocess
 import time
+import os
 from influxdb import InfluxDBClient
+
+#get the path to this script
+path = os.path.dirname(os.path.realpath(__file__))
 
 client = docker.from_env()
 
@@ -44,11 +48,11 @@ def pull_image():
 def start_https():
     container = start_http()
     print(container.name + " " + container.status)
-    p = subprocess.Popen(['docker','cp', '../etc/influxdb-https.conf',
+    p = subprocess.Popen(['docker','cp', path + '/../etc/influxdb-https.conf',
             container.name + ':/etc/influxdb/influxdb.conf'])
-    p = subprocess.Popen(['docker','cp', '../etc/ssl/influxdb-selfsigned.crt',
+    p = subprocess.Popen(['docker','cp', path + '/../etc/ssl/influxdb-selfsigned.crt',
             container.name + ':/etc/ssl/influxdb-selfsigned.crt'])
-    p = subprocess.Popen(['docker','cp', '../etc/ssl/influxdb-selfsigned.key',
+    p = subprocess.Popen(['docker','cp', path + '/../etc/ssl/influxdb-selfsigned.key',
             container.name + ':/etc/ssl/influxdb-selfsigned.key'])
     p.wait()
     container.restart()
@@ -66,7 +70,7 @@ def set_admin_account(name, password, container):
         print("setting admin in http")
         client = InfluxDBClient('localhost','8086')
         client.create_user(name, password, admin=True)
-        p = subprocess.Popen(['docker','cp', '../etc/influxdb-http-auth.conf',
+        p = subprocess.Popen(['docker','cp', path + '/../etc/influxdb-http-auth.conf',
                  container.name + ':/etc/influxdb/influxdb.conf'])
         p.wait()
         container.restart()
@@ -74,7 +78,7 @@ def set_admin_account(name, password, container):
         print("setting admin in https")
         client = InfluxDBClient('localhost', '8086', ssl=True, verify_ssl=False)
         client.create_user(name, password, admin=True)
-        p = subprocess.Popen(['docker','cp', '../etc/influxdb-https-auth.conf',
+        p = subprocess.Popen(['docker','cp', path + '/../etc/influxdb-https-auth.conf',
                  container.name + ':/etc/influxdb/influxdb.conf'])
         p.wait()
         container.restart()
