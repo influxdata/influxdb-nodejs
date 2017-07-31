@@ -1,110 +1,108 @@
-const exec = require("child_process").exec
-const testconf = require('../etc/testconf.json')
+const exec = require('child_process').exec;
+const testconf = require('../etc/testconf.json');
 
-let docker_process;
+let dockerProcess;
 
-function getFieldType(fields, fieldname){
+function getFieldType(fields, fieldname) {
+  const match = fields.find(f => f.fieldKey === fieldname);
+  if (match) {
+    return match.fieldType;
+  }
+  return false;
+}
+/*
+function getFieldTypeOrig(fields, fieldname){
 
-    for(let f of fields){
+  for(let f of fields){
 
-        if(f.fieldKey == fieldname){
-            return f.fieldType;
-        }
+    if(f.fieldKey == fieldname){
+      return f.fieldType;
     }
-    return false;
+  }
+  return false;
+}
+*/
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function sleep(ms){
-    return new Promise( resolve => setTimeout(resolve, ms));
-}
-
-function dropMeasurement(connection, measurement){
-
-    connection.connect().then(() => {
+function dropMeasurement(connection, measurement) {
+  connection.connect().then(() => {
+    connection.executeQuery(`DROP MEASUREMENT ${measurement}`).then(() => {
 
 
-        connection.executeQuery('DROP MEASUREMENT ' + measurement).then(() => {
-
-
-        }).catch((e) => {
-            return e;
-        })
-
-
-    }).catch((e) => {
-        return e;
-    });
-
+    }).catch(e => e);
+  }).catch(e => e);
 }
 
 function leftpad(num, size) {
-    var s = num+"";
-    while (s.length < size) s = "0" + s;
-    return s;
+  let s = `${num}`;
+  while (s.length < size) s = `0${s}`;
+  return s;
 }
 
-function buildValue(type, base, index, pad){
-
-    switch(type){
-        case 'string':
-        case 'str':
-        case 'STRING':
-            return base + leftpad(index, pad); //intpad + index.toString()
-            break;
-        case 'integer':
-        case 'int':
-        case 'INT':
-        case 'INTEGER':
-            return base + index;
-        case 'float':
-        case 'FLOAT':
-            return Number.parseFloat(base) + Math.random() * (index + 1);
-        case 'BOOL':
-        case 'boolean':
-        case 'bool':
-        case 'BOOLEAN':
-            if( Math.random() < 0.5){
-                return false;
-            }else{
-                return true;
-            }
-
-    }
-
+function buildValue(type, base, index, padd) {
+  switch (type) {
+    case 'string':
+    case 'str':
+    case 'STRING':
+      return base + leftpad(index, padd); // intpad + index.toString()
+    case 'integer':
+    case 'int':
+    case 'INT':
+    case 'INTEGER':
+      return base + index;
+    case 'float':
+    case 'FLOAT':
+      return Number.parseFloat(base) + (Math.random() * (index + 1));
+    case 'BOOL':
+    case 'boolean':
+    case 'bool':
+    case 'BOOLEAN':
+      if (Math.random() < 0.5) {
+        return false;
+      }
+      return true;
+    default:
+      return false;
+  }
 }
 
-function buildTags(tags, index, pad){
-    let data = []
-    for( let tag of tags){
-        data.push({ key: tag.name,  value: buildValue(tag.type, tag.base, index, pad)})
-    }
-    return data;
+function buildTags(tags, index, padd) {
+  const data = [];
+  tags.forEach((tag) => {
+    data.push({ key: tag.name, value: buildValue(tag.type, tag.base, index, padd) });
+  });
+  return data;
 }
 /**
  *
  * @param measurementName - name of the measurement
- * @param tags - array of structures of name and type e.g. [{ name: 'widget', base: 'foo', type: 'string'}]
- * @param fields - array of structures of name and type e.g. [{ name: 'widget', base: '1', type: 'integer'}]
+ * @param tags - array of structures of name and type
+ *      e.g. [{ name: 'widget', base: 'foo', type: 'string'}]
+ * @param fields - array of structures of name and type
+ *      e.g. [{ name: 'widget', base: '1', type: 'integer'}]
  * @param count - number of elements to generate
  */
-function buildDatapoints(measurementName, tags, fields, count){
-    let dps = []
+function buildDatapoints(measurementName, tags, fields, count) {
+  const dps = [];
 
-    for(let i = 0; i < count; i++){
-        dps.push({  measurement: measurementName,
-                    timestamp: new Date().getTime(),
-                    tags: buildTags(tags, i, Math.ceil(Math.log10(count))),
-                    fields: buildTags(fields, i)
-        })
-    }
+  for (let i = 0; i < count; i += 1) {
+    dps.push({ measurement: measurementName,
+      timestamp: new Date().getTime(),
+      tags: buildTags(tags, i, Math.ceil(Math.log10(count))),
+      fields: buildTags(fields, i),
+    });
+  }
 
-    return dps;
+  return dps;
 }
 
 function pad(n, width, z) {
-    z = z || '0';
-    n = n + '';
-    return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+  const zz = z || '0';
+  const nn = `${n}`;
+  return nn.length >= width ? n : new Array(width - (nn.length + 1)).join(zz) + n;
 }
 
 /**
@@ -118,34 +116,36 @@ function pad(n, width, z) {
  *       * --nopull NOPULL do not pull new image
  *       * --name NAME of the container - default 'influxdb'
  */
-function start_docker_influxdb(args){
+function startDockerInfluxdb(args) {
+  const pyArgs = [`${__dirname}/../scripts/test-server.py`, args];
 
-    let py_args = [__dirname + '/../scripts/test-server.py', args]
+  console.log(`(re)starting influxbd docker container ${pyArgs}`);
 
-    console.log("(re)starting influxbd docker container " + py_args)
+    // dockerProcess = exec('python3', pyArgs)
+//    dockerProcess = exec(`${__dirname}/../scripts/test-server.py ${args}`)
+  dockerProcess = exec(`${__dirname}/../scripts/test-server.py https`);
 
-    //docker_process = exec('python3', py_args)
-//    docker_process = exec(`${__dirname}/../scripts/test-server.py ${args}`)
-    docker_process = exec(__dirname + '/../scripts/test-server.py https');
+  let stdout = '';
+  dockerProcess.stdout.on('data', (data) => {
+    stdout += data.toString();
+  });
 
-    let stdout = ''
-    docker_process.stdout.on('data', function(data){
-        stdout += data.toString()
-    })
+  dockerProcess.on('close', () => {
+    console.log('docker process closed ', stdout);
+  });
 
-    docker_process.on('close', () => {
-        console.log("docker process closed ", stdout)
-    })
-
-    //wait a 30 secs for server to start
-    console.log("Waiting 30 seconds for influxdb server to start")
-    sleep(30000).then(() => {
-
+    // wait a 30 secs for server to start
+  console.log('Waiting 30 seconds for influxdb server to start');
+  sleep(30000).then(() => {
         // console.log('STDOUT ' + stdout)
-        console.log(`started influxdb server with args ${args}`)
-
-    })
-
+    console.log(`started influxdb server with args ${args}`);
+  });
 }
 
-module.exports={ getFieldType, dropMeasurement, buildDatapoints, sleep, pad, start_docker_influxdb, testconf };
+module.exports = { getFieldType,
+  dropMeasurement,
+  buildDatapoints,
+  sleep,
+  pad,
+  startDockerInfluxdb,
+  testconf };

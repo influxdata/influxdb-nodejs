@@ -3,8 +3,8 @@ let InfluxDB=require('../src/InfluxDB');
 let util = require('../scripts/utils.js')
 
 describe('Connection test', function(){
-
-    describe('#Automatic connect and write', function(){
+/*
+     describe('#Automatic connect and write', function(){
 
         let cxnaw = new InfluxDB.Connection({
 
@@ -86,7 +86,7 @@ describe('Connection test', function(){
 
         })
 
-    });
+    }); */
 
     describe('#Cache size automatic write', function(){
 
@@ -329,6 +329,7 @@ describe('Connection test', function(){
 
     });
 
+
     describe('#autoCreateDatabase: false', function(){
 
         let existingdb = "reified"
@@ -364,6 +365,7 @@ describe('Connection test', function(){
             })
         });
 
+/*
         it('should fail to write to a non-existant database', function(done){
 
             cxnnoexist.connect().then(() => {
@@ -391,7 +393,7 @@ describe('Connection test', function(){
                 done(e)
             })
 
-        });
+        }); */
 
         it('should write to an existing database', function(done){
             cxnexist.connect().then(() => {
