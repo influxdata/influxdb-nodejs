@@ -52,9 +52,9 @@ class Connection {
      * If batch writes are disabled, writes to InfluxDB will be initiated at each invocation of {@link Connection.write}.
      *
      * The function returns a promise. There are two ways promises are resolved
-     * (distinguished by {@link ConnectionConfiguration}.autoResolvePromisedWritesToCache):
+     * (distinguished by {@link ConnectionConfiguration}.autoResolveBufferedWritePromises):
      *
-     *    1. (autoResolvePromisedWritesToCache=true, Default) The promise gets resolved when the data points are stored
+     *    1. (autoResolveBufferedWritePromises=true, Default) The promise gets resolved when the data points are stored
      *       in the connection buffer. In this case, some writes are stored in the buffer only to be batch-written.
      *       If an error occurs during communication with InfluxDB the error will propagate as follows:
      *       * To the write method promise that triggered communication with InfluxDB (either data point capacity
@@ -63,7 +63,7 @@ class Connection {
      *       * To the error handler defined by {@link ConnectionConfiguration}.batchWriteErrorHandler in the case the
      *         communication to InfluxDB is triggered when there is data in the connection
      *         buffer older than the delay defined by {@link ConnectionConfiguration}.maximumWriteDelay
-     *    2. (autoResolvePromisedWritesToCache=false) The promise is never resolved before the data points are
+     *    2. (autoResolveBufferedWritePromises=false) The promise is never resolved before the data points are
      *         successfully written into InfluxDB.
      *         In the case of communication failure you will receive as many errors as the number of
      *         invocations of {@link ConnectionConfiguration.write} since the last successful write to InfluxDB.

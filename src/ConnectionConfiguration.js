@@ -25,14 +25,14 @@
  *    the data point can be cached in the InfluxDBConnection.
  *    When this limit is reached for a single data point written, any older data points are also written into InfluxDB.
  *    To learn more about batching see {@link Connection.write}.
- * @property {Boolean} [autoResolvePromisedWritesToCache=true] if true the {@link Promise} returned by
+ * @property {Boolean} [autoResolveBufferedWritePromises=true] if true the {@link Promise} returned by
  * {@link InfluxDBConnection.write} will be automatically resolved when the data are put into the batching cache. This is
  *  useful for larger batch sizes for performance reasons and to avoid pollution of log files (there will be just one
  *  error generated for the whole batch on the last accepted {@link InfluxDBConnection.write} invocation).
  *  If false the {@link Promise} returned by {@link InfluxDBConnection.write} will always get rejected or resolved when
  *  the data points are written into InfluxDB. See more at {@link Connection.write}.
  * @property {function} [batchWriteErrorHandler] handler called when batch write to InfluxDB fails and the
- *  autoResolvePromisedWritesToCache configuration property is set to true. This is useful in the case when the
+ *  autoResolveBufferedWritePromises configuration property is set to true. This is useful in the case when the
  *  batch write gets triggered due to maximumWriteDelay expiration. See the example below:
  *
  *  To learn more about batching see {@link Connection.write}.

@@ -27,13 +27,15 @@ describe('InfluxDB.Connection', function() {
                         done(e);
                     });
 
-                    connection.executeQuery('select * from outdoorThermometerA').then((result) => {
-                        assert.equal(result.length, 1);
-                        console.log('assert evaluated');
-                        done();
-                    }).catch((e) => {
-                        done(e);
-                    });
+                    setTimeout( ()=>{
+                        connection.executeQuery('select * from outdoorThermometerA').then((result) => {
+                            assert.equal(result.length, 1);
+                            console.log('assert evaluated');
+                            done();
+                        }).catch((e) => {
+                            done(e);
+                        });
+                    }, 500);
                 };
 
                 connection.executeQuery('drop measurement outdoorThermometerA').then((result) => {
