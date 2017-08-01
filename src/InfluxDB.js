@@ -21,14 +21,14 @@
 /**
  * @ignore
  */
-const FieldType = require('./Field').FieldType;
+import { FieldType } from '~/Field';
 /**
  * @ignore
  */
-const Connection = require('./Connection');
+import Connection from '~/Connection';
 /**
  * @ignore
  */
-const InfluxDBError = require('./InfluxDBError');
+import InfluxDBError from '~/InfluxDBError';
 
-module.exports={ Connection, FieldType, InfluxDBError };
+export { Connection, FieldType, InfluxDBError };

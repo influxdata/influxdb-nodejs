@@ -1,104 +1,138 @@
-//import * as request from "request";
-const request = require('request');
+import * as request from 'request';
+import * as _ from 'lodash';
 
-
-const InfluxDBError = require('../InfluxDBError').InfluxDBError;
-const WriteBuffer = require('./WriteBuffer');
+import InfluxDBError from '~/InfluxDBError';
+import WriteBuffer from '~/impl/WriteBuffer';
+import ConnectionTracker from '~/impl/ConnectionTracker';
+import DefaultConnectionOptions from '~/impl/DefaultConnectionOptions';
 
 /**
  * @ignore
  */
 class ConnectionImpl {
 
-    // Copy the supplied schema so that it won't get affected by further modifications from
-    // the user. Also convert tags to a map for faster access during serialization
-    processSchemas(schemas) {
-        const result = {};
-        if (schemas) {
-            for (let originalSchema of schemas) {
-                const connectionSchema = {};
-                if (!originalSchema.measurement)
-                    throw new InfluxDBError('Each data point schema must have "measurement" property defined');
-                connectionSchema.measurement = originalSchema.measurement;
-                if (originalSchema.tags) {
-                    connectionSchema.tagsDictionary = {};
-                    connectionSchema.tags = [];
-                    for (let tag of originalSchema.tags) {
-                        connectionSchema.tagsDictionary[tag] = true;
-                        connectionSchema.tags.push(tag);
-                    }
-                }
-                if (originalSchema.fields) {
-                    connectionSchema.fields = {};
-                    for (let fieldKey in originalSchema.fields) {
-                        connectionSchema.fields[fieldKey] = originalSchema.fields[fieldKey];
-                    }
-                }
-                result[originalSchema.measurement] = connectionSchema;
-            }
-        }
-        return result;
+    constructor(options) {
+        this.schemas = {};
+        this.options = ConnectionImpl.calculateOptions(options);
+        this.schemas = ConnectionImpl.prepareSchemas(options.schema);
+        this.hostUrl = ConnectionImpl.stripTrailingSlashIfNeeded(this.options.hostUrl);
+        this.writeBuffer = new WriteBuffer(this.schemas, this.options.autoGenerateTimestamps);
+        this.bufferFlushTimerHandle = null;
+        this.connectionId = ConnectionTracker.generateConnectionID();
+        this.connected = false;
+        this.disconnected = false;
     }
 
-    onProcessExit() {
-        if (this.writeBuffer.batchSize>0) {
-            console.error('Warning: there are still buffered data points to be written into InfluxDB, ' +
-                'but the process is about to exit. Forgot to call Connection.flush() ?');
-        }
-        for (let promise of this.bufferedWritesPromises) {
-            const error = new InfluxDBError('Can\'t write data points to InfluxDB, process is exiting');
-            promise.reject(error);
-        }
-    }
-
-    registerShutdownHook() {
-        if (!ConnectionImpl.activeConnections) {
-            ConnectionImpl.connectionIdGenerator = 0;
-            ConnectionImpl.activeConnections = {};
-            process.on('exit', () => {
-                for (let connectionId in ConnectionImpl.activeConnections) {
-                    ConnectionImpl.activeConnections[connectionId].onProcessExit();
-                }
-            });
-        }
-        this.id = ConnectionImpl.connectionIdGenerator++;
-    }
-
-    stripTrailingSlashIfNeeded(url) {
+    static stripTrailingSlashIfNeeded(url) {
         if (url.endsWith('/')) return url.substring(0, url.length - 1); else return url;
     }
 
-    calculateOptions(options) {
-        if (!options.database) throw new InfluxDBError("'database' option must be specified");
-
-        const results={};
-        const defaults={
-            username: 'root',
-            password: 'root',
-            hostUrl: 'http://localhost:8086',
-            autoCreateDatabase: true,
-            autoResolveBufferedWritePromises: true,
-            maximumWriteDelay: 1000,
-            batchSize: 1000,
-            batchWriteErrorHandler(e, dataPoints) {
-                console.error(`Error writing data points into InfluxDB:\n${dataPoints}`, e);
+    // Copy the supplied schema so that it won't get affected by further modifications from
+    // the user. Also convert tags to a map for faster access during serialization
+    static prepareSchemas(schemas) {
+        if (schemas) {
+            const copy=_.cloneDeep(schemas);
+            for (let schema of copy) {
+                if (!schema.measurement)
+                    throw new InfluxDBError('Each data point schema must have "measurement" property defined');
+                if(schema.tags) {
+                    schema.tagsDictionary={};
+                    for (let tag of schema.tags) schema.tagsDictionary[tag] = true;
+                }
             }
-        };
-        Object.assign(results,defaults);
-        Object.assign(results,options);
+            return _.keyBy(copy,'measurement');
+        }
+        else {
+            return {};
+        }
+    }
+
+    static calculateOptions(options) {
+        if (!options.database) throw new InfluxDBError("'database' option must be specified");
+        const results = {};
+        Object.assign(results, DefaultConnectionOptions);
+        Object.assign(results, options);
         return results;
     }
 
-    constructor(options) {
-        this.schemas={};
-        this.schemas=this.processSchemas(options.schema);
-        this.options = this.calculateOptions(options);
-        this.hostUrl = this.stripTrailingSlashIfNeeded(this.options.hostUrl);
-        this.writeBuffer=new WriteBuffer(this.schemas, this.options.autoGenerateTimestamps);
-        this.bufferFlushTimerHandle = null;
-        this.registerShutdownHook();
+    // called by the connection tracker when the node process is exiting
+    onProcessExit() {
+        if (this.writeBuffer.batchSize > 0) {
+            console.error('Warning: there are still buffered data points to be written into InfluxDB, ' +
+                'but the process is about to exit. Forgot to call Connection.flush() ?');
+        }
+        this.writeBuffer.rejectWritePromises(new InfluxDBError('Can\'t write data points to InfluxDB, process is exiting'));
     }
 
+    write(dataPoints, forceFlush) {
+        try {
+            if (!dataPoints) return this.writeEmptySetOfPoints(forceFlush);
+            if (!Array.isArray(dataPoints)) {
+                if (typeof dataPoints === 'object')
+                    return this.write([dataPoints], forceFlush);
+                else
+                    return Promise.reject(new InfluxDBError('Invalid arguments supplied'));
+            }
+            if (dataPoints.length === 0) return this.writeEmptySetOfPoints(forceFlush);
+
+            return this.whenConnected(() => {
+                return this.writeWhenConnectedAndInputValidated(dataPoints, forceFlush);
+            });
+        }
+        catch(e) {
+            return Promise.reject(e);
+        }
+    }
+
+    writeEmptySetOfPoints(forceFlush) {
+        if (forceFlush)
+            return this.flush();
+        else
+            return Promise.resolve();
+    }
+
+    writeWhenConnectedAndInputValidated(dataPoints, forceFlush) {
+        if (this.writeBuffer.firstWriteTimestamp === null) this.writeBuffer.firstWriteTimestamp = new Date().getTime();
+        const batchSizeLimitNotReached = this.options.batchSize > 0 &&
+            (this.writeBuffer.batchSize + dataPoints.length < this.options.batchSize);
+        const timeoutLimitNotReached = this.options.maximumWriteDelay > 0 &&
+            (new Date().getTime() - this.writeBuffer.firstWriteTimestamp < this.options.maximumWriteDelay);
+        if (batchSizeLimitNotReached && timeoutLimitNotReached && !forceFlush) {
+            return this.promiseBufferedWrite(dataPoints);
+        }
+        else {
+            this.writeBuffer.write(dataPoints);
+            return this.flush();
+        }
+    }
+
+    promiseBufferedWrite(dataPoints) {
+        if (this.options.autoResolveBufferedWritePromises) {
+            this.directBufferedWrite(dataPoints);
+            return Promise.resolve();
+        }
+        else {
+            let promise = new Promise(() => {
+                this.directBufferedWrite(dataPoints)
+            });
+            this.writeBuffer.addWritePromiseToResolve(promise);
+            return promise;
+        }
+    }
+
+    directBufferedWrite(dataPoints) {
+        this.writeBuffer.write(dataPoints);
+        // make the shutdown hook aware of buffered writes
+        ConnectionTracker.startTracking(this);
+
+        this.scheduleFlush(() => {
+            this.flush().then().catch((e) => {
+                if (this.options.autoResolveBufferedWritePromises) {
+                    this.options.batchWriteErrorHandler(e, e.data);
+                }
+            });
+        }, this.options.maximumWriteDelay);
+    }
 
     scheduleFlush(onFlush, delay) {
         if (this.bufferFlushTimerHandle === null) {
@@ -113,89 +147,17 @@ class ConnectionImpl {
         }
     }
 
-    writeWhenConnectedAndInputValidated(dataPoints, forceFlush) {
-        if (this.writeBuffer.firstWriteTimestamp===null) this.writeBuffer.firstWriteTimestamp = new Date().getTime();
-        const batchSizeLimitNotReached = this.options.batchSize > 0 &&
-            (this.writeBuffer.batchSize + dataPoints.length < this.options.batchSize);
-        const timeoutLimitNotReached = this.options.maximumWriteDelay > 0 &&
-            (new Date().getTime() - this.writeBuffer.firstWriteTimestamp < this.options.maximumWriteDelay);
-        if (batchSizeLimitNotReached && timeoutLimitNotReached && !forceFlush) {
-            let promise=new Promise((resolve, reject) => {
-                this.writeBuffer.write(dataPoints);
-                // make the shutdown hook aware of buffered writes
-                ConnectionImpl.activeConnections[this.id] = this;
-
-                this.scheduleFlush(() => {
-                    this.flush().then().catch((e) => {
-                        if (this.options.autoResolveBufferedWritePromises) {
-                            this.options.batchWriteErrorHandler(e, e.data);
-                        }
-                    });
-                }, this.options.maximumWriteDelay);
-
-                this.writeBuffer.batchSize += dataPoints.length;
-
-                if (this.options.autoResolveBufferedWritePromises) {
-                    resolve();
-                }
-                else {
-                    this.writeBuffer.addWritePromiseToResolve(promise);
-                }
-            });
-            return promise;
-        }
-        else {
-            return this.flushOnInternalRequest(dataPoints);
-        }
-    }
-
-    writeEmptySetOfPoints(forceFlush) {
-        if (forceFlush)
-            return this.flushOnInternalRequest();
-        else
-            return Promise.resolve();
-    }
-
-    write(dataPoints, forceFlush) {
-        if (!dataPoints) return this.writeEmptySetOfPoints(forceFlush);
-        if (!Array.isArray(dataPoints)) {
-            if (typeof dataPoints === 'object')
-                return this.write([dataPoints], forceFlush);
-            else
-                throw new InfluxDBError('Invalid arguments supplied');
-        }
-        if (dataPoints.length === 0) return this.writeEmptySetOfPoints(forceFlush);
-
-        if (!this.connected) {
-            return new Promise((resolve, reject) => {
-                let connectToDatabase = this.connect();
-                let writeToDatabase = this.write(dataPoints, forceFlush);
-                connectToDatabase.then(writeToDatabase).catch((e) => {
-                    reject(e)
-                });
-            });
-        }
-        else {
-            return this.writeWhenConnectedAndInputValidated(dataPoints, forceFlush);
-        }
-    }
-
-    flushOnInternalRequest(dataPoints) {
-        if (dataPoints) {
-            this.writeBuffer.write(dataPoints);
-        } else {
-            if (this.writeBuffer.batchSize===0) return new Promise((resolve, reject) => {
-                resolve()
-            });
-        }
-
-        const flushedWriteBuffer=this.writeBuffer;
+    flush() {
+        // prevent sending empty requests to the db
+        if (this.writeBuffer.batchSize === 0) return Promise.resolve();
+        // from now on all writes will be redirected to a new buffer
+        const flushedWriteBuffer = this.writeBuffer;
+        this.writeBuffer = new WriteBuffer(this.schemas, this.options.autoGenerateTimestamps);
         // prevent repeated flush call if flush invoked before expiration timeout
         this.cancelFlushSchedule();
-        this.writeBuffer=new WriteBuffer(this.schemas, this.options.autoGenerateTimestamps);
-
         // shutdown hook doesn't need to track this connection any more
-        delete ConnectionImpl.activeConnections[this.id];
+        ConnectionTracker.stopTracking(this);
+
         const url = `${this.hostUrl}/write?db=${this.options.database}`;
 
         return new Promise((resolve, reject) => {
@@ -213,7 +175,7 @@ class ConnectionImpl {
                 (error, result) => {
                     if (error) {
                         reject(error);
-                        flushedWriteBuffer.resolveWritePromises(error);
+                        flushedWriteBuffer.rejectWritePromises(error);
                     }
                     else {
                         if (result.statusCode >= 200 && result.statusCode < 400) {
@@ -238,12 +200,17 @@ class ConnectionImpl {
         });
     }
 
-    flush() {
-        return this.flushOnInternalRequest();
+    executeQuery(query, database) {
+        return this.executeRawQuery(query, database).then(ConnectionImpl.postProcessQueryResults);
     }
 
     executeRawQuery(query, database) {
-        console.log('In raw query');
+        return this.whenConnected(() => {
+            return this.executeInternalQuery(query, database);
+        });
+    }
+
+    executeInternalQuery(query, database) {
         return new Promise((resolve, reject) => {
             const db = !database ? this.options.database : database;
             const url = `${this.hostUrl}/query?db=${encodeURIComponent(db)}&q=${encodeURIComponent(query)}`;
@@ -267,11 +234,11 @@ class ConnectionImpl {
                                 resolve(data);
                             }
                             else {
-                                reject(new InfluxDBError('Unexpected result content-type:' + contentType));
+                                reject(new InfluxDBError(`Unexpected result content-type: ${contentType}`));
                             }
                         }
                         else {
-                            const error = new InfluxDBError(result.statusCode + ' communication error');
+                            const error = new InfluxDBError(`HTTP ${result.statusCode} communication error`);
                             reject(error);
                         }
                     }
@@ -280,102 +247,80 @@ class ConnectionImpl {
         });
     }
 
-    postProcessQueryResults(results) {
+    static postProcessQueryResults(results) {
         const outcome = [];
-        for (let result of results.results) {
-            if (result.series)
-                for (let series of result.series) {
-                    for (let values of series.values) {
-                        let result = {};
-                        let i = 0;
-                        for (let columnName of series.columns) {
-                            if (columnName === 'time') {
-                                try {
-                                    result[columnName] = new Date(values[i]);
-                                }
-                                catch (e) {
-                                    result[columnName] = values[i];
-                                }
+        _.forEach(results.results, (result) => {
+            _.forEach(result.series, (series) => {
+                // use for loops form now on to get better performance
+                for (let values of series.values) {
+                    let result = {};
+                    let i = 0;
+                    for (let columnName of series.columns) {
+                        if (columnName === 'time') {
+                            try {
+                                result[columnName] = new Date(values[i]);
                             }
-                            else {
+                            catch (e) {
                                 result[columnName] = values[i];
                             }
-                            i++;
                         }
-                        if (series.tags) {
-                            for (let tagName in series.tags) {
-                                result[tagName] = series.tags[tagName];
-                            }
+                        else {
+                            result[columnName] = values[i];
                         }
-                        outcome.push(result);
+                        i++;
                     }
+                    if (series.tags) Object.assign(result, series.tags);
+                    outcome.push(result);
                 }
-        }
+            });
+        });
         return Promise.resolve(outcome);
     }
 
-    executeQuery(query, database) {
-        return new Promise((resolve, reject) => {
-            this.executeRawQuery(query, database).then((data) => {
-                resolve(this.postProcessQueryResults(data));
-            }).catch((e) => {
-                reject(e);
-            });
-        });
-        //return this.executeRawQuery(query, database).then(this.postProcessQueryResults);
-    }
-
-    doesDatabaseExists(showDatabasesResult) {
-        const values = showDatabasesResult.results[0].series[0].values;
-        for (let value of values) {
-            if (value[0] === this.options.database) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     connect() {
-/*
         if (this.options.autoCreateDatabase) {
-            return this.executeRawQuery(`CREATE DATABASE ${this.options.database}`).then(() => {
+            // this works because:
+            //  1) create database operation is idempotent
+            //  2) the create database operation doesn't require any privileges
+            return this.executeInternalQuery(`CREATE DATABASE ${this.options.database}`).then(() => {
                 this.connected = true;
+                this.disconnected = false;
             });
         }
         else {
-            const showDatabases = this.executeRawQuery('SHOW DATABASES').then();
-
-        }*/
-
-        return new Promise((resolve, reject) => {
-
-            const showDatabases = this.executeRawQuery('SHOW DATABASES');
-            showDatabases.then((result) => {
-                if(this.doesDatabaseExists(result)) {
-                    this.connected = true;
-                    resolve();
-                }
-                else {
-                    if (this.options.autoCreateDatabase) {
-                        // If the database doesn't already exist, create it
-                        const createDatabase = this.executeRawQuery(`CREATE DATABASE ${this.options.database}`);
-                        createDatabase.then(() => {
-                            this.connected = true;
-                            resolve();
-                        }).catch((e) => {
-                            reject(e);
-                        })
-                    }
-                    else {
-                        resolve(new InfluxDBError('Database ' + this.options.database + ' does not exist'));
-                    }
-                }
-            }).catch((e) => {
-                reject(e)
+            this.executeInternalQuery('SHOW DATABASES').then((databases) => {
+                this.connected = this.doesDatabaseExists(databases);
+                this.disconnected = !this.connected;
+                if (!this.connected) new InfluxDBError(`Database '${this.options.database}' does not exist`);
             });
-        });
+        }
+    }
+
+    disconnect() {
+        let result = this.flush();
+        this.connected = false;
+        this.disconnected = true;
+        return result;
+    }
+
+    doesDatabaseExists(showDatabasesResult) {
+        // there is always _internal database available/visible by any user
+        const values = showDatabasesResult.results[0].series[0].values;
+        return _.findIndex(values, this.options.database) >= 0;
+    }
+
+    whenConnected(action) {
+        try {
+            if (this.disconnected)
+                return Promise.reject(new InfluxDBError('Attempt to use a disconnected connection detected'));
+            if (!this.connected)
+                return this.connect().then(action); else return action();
+        }
+        catch(e) {
+            return Promise.reject(e);
+        }
     }
 }
 
-//export default ConnectionImpl;
-module.exports = ConnectionImpl;
+
+export default ConnectionImpl;

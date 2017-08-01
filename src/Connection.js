@@ -1,6 +1,4 @@
-//import InfluxDBConnectionImpl from './impl/InfluxDBConnectionImpl';
-let ConnectionImpl=require('./impl/ConnectionImpl');
-
+import ConnectionImpl from '~/impl/ConnectionImpl';
 
 /**
  * Main class used to communicate with InfluxDB
@@ -136,8 +134,17 @@ class Connection {
         return this.stub.executeRawQuery(query);
     }
 
+    /**
+     * Disconnect from the database. The internal buffer gets automatically flushed when you invoke this function and
+     * you will receive a promise object for this operation as a return value. Further write or query operations invoked
+     * on the disconnected connection will throw an exception unless you call {@link Connection.connect} again.
+     *
+     * @returns {Promise} resolved when all buffered data are written to InfluxDB
+     * @throws {InfluxDBError}
+     */
+    disconnect() {
+        return this.stub.disconnect();
+    }
 }
 
-//export default InfluxDBConnection;
-
-module.exports=Connection;
+export default Connection;

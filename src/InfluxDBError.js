@@ -17,4 +17,4 @@ class InfluxDBError extends Error {
 
 }
 
-module.exports={ InfluxDBError };
+export default InfluxDBError;
