@@ -21,7 +21,7 @@
 /**
  * @ignore
  */
-import { FieldType } from '~/Field';
+import {FieldType} from '~/Field';
 /**
  * @ignore
  */
@@ -31,4 +31,4 @@ import Connection from '~/Connection';
  */
 import InfluxDBError from '~/InfluxDBError';
 
-export { Connection, FieldType, InfluxDBError };
+export {Connection, FieldType, InfluxDBError};

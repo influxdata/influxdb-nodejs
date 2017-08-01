@@ -32,11 +32,11 @@
  */
 let FieldType = {
 
-    INTEGER:0,FLOAT:1,BOOLEAN:2,STRING:3
+    INTEGER: 0, FLOAT: 1, BOOLEAN: 2, STRING: 3
 
 };
 
-export { FieldType };
+export {FieldType};
 
 
 /**

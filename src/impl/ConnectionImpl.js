@@ -31,16 +31,16 @@ class ConnectionImpl {
     // the user. Also convert tags to a map for faster access during serialization
     static prepareSchemas(schemas) {
         if (schemas) {
-            const copy=_.cloneDeep(schemas);
+            const copy = _.cloneDeep(schemas);
             for (let schema of copy) {
                 if (!schema.measurement)
                     throw new InfluxDBError('Each data point schema must have "measurement" property defined');
-                if(schema.tags) {
-                    schema.tagsDictionary={};
+                if (schema.tags) {
+                    schema.tagsDictionary = {};
                     for (let tag of schema.tags) schema.tagsDictionary[tag] = true;
                 }
             }
-            return _.keyBy(copy,'measurement');
+            return _.keyBy(copy, 'measurement');
         }
         else {
             return {};
@@ -79,7 +79,7 @@ class ConnectionImpl {
                 return this.writeWhenConnectedAndInputValidated(dataPoints, forceFlush);
             });
         }
-        catch(e) {
+        catch (e) {
             return Promise.reject(e);
         }
     }
@@ -316,7 +316,7 @@ class ConnectionImpl {
             if (!this.connected)
                 return this.connect().then(action); else return action();
         }
-        catch(e) {
+        catch (e) {
             return Promise.reject(e);
         }
     }

@@ -1,7 +1,8 @@
 import * as streamBuffers from 'stream-buffers';
 
 import InfluxDBError from '~/InfluxDBError';
-import { FieldType } from '~/Field';
+import {FieldType} from '~/Field';
+import * as _ from 'lodash';
 
 /**
  * Represents a single data point batch buffer written into into the database. It provides a write method to add
@@ -12,8 +13,8 @@ import { FieldType } from '~/Field';
 class WriteBuffer {
 
     constructor(schemas, autoGenerateTimestamps) {
-        this.schemas=schemas;
-        this.autoGenerateTimestamps=autoGenerateTimestamps;
+        this.schemas = schemas;
+        this.autoGenerateTimestamps = autoGenerateTimestamps;
         this.stream = new streamBuffers.WritableStreamBuffer();
         this.firstWriteTimestamp = null;
         this.batchSize = 0;
@@ -52,11 +53,12 @@ class WriteBuffer {
 
     validateDataPoint(dataPoint) {
         this.validateTags(dataPoint);
-        this.validateFields(dataPoint)
+        this.validateFields(dataPoint);
+        WriteBuffer.validateTimestamp(dataPoint);
     }
 
     serializeDataPoint(dataPoint) {
-        let outputStream=this.stream;
+        let outputStream = this.stream;
         outputStream.write(WriteBuffer.escapeMeasurementName(dataPoint.measurement));
         if (dataPoint.tags) {
             outputStream.write(',');
@@ -65,7 +67,7 @@ class WriteBuffer {
         outputStream.write(' ');
         this.serializeFields(dataPoint);
         outputStream.write(' ');
-        outputStream.write(this.serializeTimestamp(dataPoint.timestamp));
+        outputStream.write(WriteBuffer.serializeTimestamp(dataPoint.timestamp));
         outputStream.write('\n');
     }
 
@@ -84,9 +86,9 @@ class WriteBuffer {
             }
         } else {
             if ((typeof dataPoint.tags) === 'object') {
-                for (let tagKey in dataPoint.tags) {
-                    this.validateTagValue(dataPoint.tags[tagKey], tagKey, dataPoint);
-                }
+                _.forOwn(dataPoint.tags, (tagValue, tagKey) => {
+                    this.validateTagValue(tagValue, tagKey, dataPoint);
+                });
             }
         }
     }
@@ -101,7 +103,7 @@ class WriteBuffer {
     }
 
     serializeTags(dataPoint) {
-        let outputStream=this.stream;
+        let outputStream = this.stream;
         if (Array.isArray(dataPoint.tags)) {
             for (let tag of dataPoint.tags) {
                 outputStream.write(WriteBuffer.escape(tag.key));
@@ -109,11 +111,11 @@ class WriteBuffer {
                 outputStream.write(WriteBuffer.escape(tag.value));
             }
         } else if ((typeof dataPoint.tags) === 'object') {
-            for (let tagKey in dataPoint.tags) {
+            _.forOwn(dataPoint.tags, (tagValue, tagKey) => {
                 outputStream.write(WriteBuffer.escape(tagKey));
                 outputStream.write('=');
-                outputStream.write(WriteBuffer.escape(dataPoint.tags[tagKey]));
-            }
+                outputStream.write(WriteBuffer.escape(tagValue));
+            });
         }
     }
 
@@ -126,19 +128,18 @@ class WriteBuffer {
                     throw new InfluxDBError(`Field key must be a string, measurement: '${dataPoint.measurement}'`);
                 if (field.value != null) {
                     this.validateFieldValue(field.value, field.key, dataPoint);
-                    fieldsDefined=true;
+                    fieldsDefined = true;
                 }
             }
         }
         else {
             if ((typeof dataPoint.fields) === 'object') {
-                for (let fieldKey in dataPoint.fields) {
-                    const value = dataPoint.fields[fieldKey];
-                    if (value != null) {
-                        this.validateFieldValue(value, fieldKey, dataPoint);
-                        fieldsDefined=true;
+                _.forOwn(dataPoint.fields, (fieldValue, fieldKey) => {
+                    if (fieldValue != null) {
+                        this.validateFieldValue(fieldValue, fieldKey, dataPoint);
+                        fieldsDefined = true;
                     }
-                }
+                });
             }
             else {
                 throw new InfluxDBError('Data point fields property must be an array or an object');
@@ -172,11 +173,7 @@ class WriteBuffer {
                     break;
                 case FieldType.INTEGER:
                     WriteBuffer.validateType('number', value, fieldName, dataPoint);
-                    if (value !== Math.floor(value)) {
-                        throw new InfluxDBError(`Invalid value supplied for field ${fieldName} of ` +
-                            `measurement ${dataPoint.measurement}.` +
-                            'Should have been an integer but supplied number has a fraction part.');
-                    }
+                    WriteBuffer.validateInteger(value, fieldName, dataPoint);
                     break;
                 default:
                     throw new InfluxDBError(`Unsupported value type: ${typeof value}`);
@@ -195,7 +192,7 @@ class WriteBuffer {
     }
 
     static getUserSpecifiedType(schema, fieldKey) {
-        if(schema && schema.fields) return schema.fields[fieldKey];
+        if (schema && schema.fields) return schema.fields[fieldKey];
     }
 
     static validateType(expectedType, value, fieldName, dataPoint) {
@@ -205,30 +202,37 @@ class WriteBuffer {
                 `Supplied ${typeof value} but '${expectedType}' is required`);
     }
 
+    static validateInteger(value, fieldName, dataPoint) {
+        if (value !== Math.floor(value)) {
+            throw new InfluxDBError(`Invalid value supplied for field ${fieldName} of ` +
+                `measurement ${dataPoint.measurement}.` +
+                'Should have been an integer but supplied number has a fraction part.');
+        }
+    }
+
     serializeFields(dataPoint) {
         const schema = this.schemas[dataPoint.measurement];
-        let outputStream=this.stream;
+        let outputStream = this.stream;
         if (Array.isArray(dataPoint.fields)) {
             for (let field of dataPoint.fields) {
                 // do not serialize fields with null & undefined values
                 if (field.value != null) {
                     outputStream.write(WriteBuffer.escape(field.key));
                     outputStream.write('=');
-                    let userSpecifiedType=WriteBuffer.getUserSpecifiedType(schema, field.key);
-                    outputStream.write(WriteBuffer.serializeFieldValue(field.value,userSpecifiedType));
+                    let userSpecifiedType = WriteBuffer.getUserSpecifiedType(schema, field.key);
+                    outputStream.write(WriteBuffer.serializeFieldValue(field.value, userSpecifiedType));
                 }
             }
         } else if ((typeof dataPoint.fields) === 'object') {
-            for (let fieldKey in dataPoint.fields) {
-                const value = dataPoint.fields[fieldKey];
+            _.forOwn(dataPoint.fields, (fieldValue, fieldKey) => {
                 // do not serialize fields with null & undefined values
-                if (value != null) {
+                if (fieldValue != null) {
                     outputStream.write(WriteBuffer.escape(fieldKey));
                     outputStream.write('=');
-                    let userSpecifiedType=WriteBuffer.getUserSpecifiedType(schema, fieldKey);
-                    outputStream.write(WriteBuffer.serializeFieldValue(value,userSpecifiedType));
+                    let userSpecifiedType = WriteBuffer.getUserSpecifiedType(schema, fieldKey);
+                    outputStream.write(WriteBuffer.serializeFieldValue(fieldValue, userSpecifiedType));
                 }
-            }
+            });
         }
     }
 
@@ -273,26 +277,38 @@ class WriteBuffer {
         return s.replace(/(["])/g, '\\$1');
     }
 
-    serializeTimestamp(timestamp) {
+    static validateTimestamp(dataPoint) {
+        let timestamp = dataPoint.timestamp;
         switch (typeof timestamp) {
             case 'string':
-                return timestamp;
+            case 'number':
+            case 'undefined':
+                break;
             case 'object':
                 if ((typeof timestamp.getTime) !== 'function')
                     throw new InfluxDBError('Timestamp must be an instance of Date');
-                return WriteBuffer.convertMsToNs(timestamp.getTime());
-            case 'number':
-                return WriteBuffer.convertMsToNs(timestamp);
-            case 'undefined':
-                return this.autoGenerateTimestamps ? WriteBuffer.convertMsToNs(new Date().getTime()) : '';
+                break;
             default:
                 throw new InfluxDBError(`Unsupported timestamp type: ${typeof timestamp}`);
         }
     }
 
+    static serializeTimestamp(timestamp) {
+        switch (typeof timestamp) {
+            case 'string':
+                return timestamp;
+            case 'object':
+                return WriteBuffer.convertMsToNs(timestamp.getTime());
+            case 'number':
+                return WriteBuffer.convertMsToNs(timestamp);
+            case 'undefined':
+                return this.autoGenerateTimestamps ? WriteBuffer.convertMsToNs(new Date().getTime()) : '';
+        }
+    }
+
     // convert number/string in unix ms format into nanoseconds as required by InfluxDB
     static convertMsToNs(ms) {
-        return ms+'000000';
+        return ms + '000000';
     }
 }
 

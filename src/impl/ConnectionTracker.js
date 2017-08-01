@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-
 /**
  * Watch for situations when the node process is about to exit but the connection buffers are still non-empty for some
  * connections.
@@ -9,14 +8,14 @@ import * as _ from 'lodash';
 class ConnectionTracker {
 
     constructor() {
-        this.activeConnections={};
+        this.activeConnections = {};
         this.connectionIdGenerator = 0;
         this.registerShutdownHook();
     }
 
     registerShutdownHook() {
         process.on('exit', () => {
-            _.forOwn(this.activeConnections, (connection)=>{
+            _.forOwn(this.activeConnections, (connection) => {
                 connection.onProcessExit();
             });
         });
@@ -27,7 +26,7 @@ class ConnectionTracker {
     }
 
     startTracking(connection) {
-        this.activeConnections[connection.connectionId]=connection;
+        this.activeConnections[connection.connectionId] = connection;
     }
 
     stopTracking(connection) {

@@ -16,7 +16,7 @@ class Connection {
      * @returns new {@link Connection} object
      */
     constructor(options) {
-        this.stub=new ConnectionImpl(options);
+        this.stub = new ConnectionImpl(options);
     }
 
     /**

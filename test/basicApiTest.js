@@ -69,6 +69,7 @@ describe('InfluxDB.Connection', function() {
                 };
 
                 connection.write([dataPoint1, dataPoint2]).then(()=>{ console.log('written');}).catch((e) => {
+                    console.log('errr',e);
                     done(e);
                 });
                 connection.flush().then(() => {

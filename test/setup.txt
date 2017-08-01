@@ -1,0 +1,13 @@
+> create user otto with password 'noname';
+> create user admin with password 'noname'
+> create database for_otto;
+> create database not_for_otto;
+> grant all priviledges to admin;
+> grant read on "for_otto" to "otto";
+> grant write on "for_otto" to "otto";
+> revoke read on "for_otto" from "otto";
+> revoke write on "for_otto" from "otto";
+> create user helmut with password 'noname'
+> revoke all from helmut;
+
+

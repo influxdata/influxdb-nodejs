@@ -2,7 +2,7 @@
  * Default options for {@link Connection.connect}
  * @ignore
  */
-const DefaultConnectionOptions={
+const DefaultConnectionOptions = {
     username: 'root',
     password: 'root',
     hostUrl: 'http://localhost:8086',
