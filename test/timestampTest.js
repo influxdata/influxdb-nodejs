@@ -1,6 +1,6 @@
 /* global describe it */
-const assert = require('assert');
-const InfluxDB = require('../src/InfluxDB');
+import assert from 'assert';
+import * as InfluxDB from '~/InfluxDB';
 
 describe('InfluxDB.timestamps', () => {
   describe('#timestamps check', () => {

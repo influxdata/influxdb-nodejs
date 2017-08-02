@@ -1,7 +1,12 @@
-const exec = require('child_process').exec;
-const testconf = require('../etc/testconf.json');
+import exec from 'child_process';
+import testconf from '~/../etc/testconf.json';
+
+// const exec = require('child_process').exec;
+//const testconf = require('../etc/testconf.json');
 
 let dockerProcess;
+
+console.log(testconf);
 
 function getFieldType(fields, fieldname) {
   const match = fields.find(f => f.fieldKey === fieldname);

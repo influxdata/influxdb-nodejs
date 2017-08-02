@@ -1,7 +1,11 @@
 /* global describe it before after */
-const assert = require('assert');
-const InfluxDB = require('../src/InfluxDB');
-const utils = require('../scripts/utils.js');
+import assert from 'assert';
+import * as InfluxDB from '~/InfluxDB'
+import * as utils from '~/../scripts/utils'
+
+// const assert = require('assert');
+// const InfluxDB = require('../src/InfluxDB');
+// const utils = require('../scripts/utils.js');
 
 describe('HTTPS server test', () => {
   let failed = false;

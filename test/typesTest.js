@@ -1,7 +1,7 @@
 /* global describe it */
-const assert = require('assert');
-const InfluxDB = require('../src/InfluxDB');
-const util = require('../scripts/utils.js');
+import assert from 'assert';
+import * as InfluxDB from '~/InfluxDB'
+import * as util from '~/../scripts/utils'
 
 describe('InfluxDB.types', () => {
   const connection = new InfluxDB.Connection({
@@ -590,38 +590,37 @@ describe('InfluxDB.types', () => {
     };
 
     it('should write the initial bool', (done) => {
-      cxnb.connect().then(() => {
-        cxnb.write([dpBool]).then(() => {
-
-        }).catch((e) => {
-          done(e);
-        });
-
-        cxnb.flush().then(() => {
+      cxnb.connect()
+        .then(() => cxnb.write([dpBool]))
+        .then(() => cxnb.flush())
+        .then(() => {
           done();
-        }).catch((e) => {
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should catch the invalid float type', (done) => {
-      cxnb.connect().then(() => {
-        cxnb.write([dpFlt]).catch(() => {
-                    //                done(e)
-        });
+      const cxnp = cxnb.connect();
+      const writep = cxnp.then(() => cxnb.write([dpFlt]));
+      const flushp = writep.then(() => cxnb.flush());
 
-        cxnb.flush().then(() => {
-          done(new Error('Managed to write value of type Float to field of type Boolean'));
-        }).catch((e) => {
-//                    console.log('second write flush failed - which is correct: ' + e);
-          assert(e.message !== undefined);
-          assert(e.data !== undefined);
-          done();
-        });
-      }).catch((e) => {
+      writep.catch((e) => {
+        console.log(JSON.stringify(e));
+        done();
+      });
+
+      flushp.then(() => {
+        done(new Error('Managed to write value of type Float to field of type Boolean'));
+      });
+      flushp.catch((e) => {
+        assert(e.message !== undefined);
+        assert(e.data !== undefined);
+        done();
+      });
+      // connection issue
+      cxnp.catch((e) => {
         done(e);
       });
     });
@@ -659,38 +658,37 @@ describe('InfluxDB.types', () => {
     };
 
     it('should write the initial string', (done) => {
-      cxns.connect().then(() => {
-        cxns.write([dpStr]).then(() => {
-
-        }).catch((e) => {
-          done(e);
-        });
-
-        cxns.flush().then(() => {
+      cxns.connect()
+        .then(() => cxns.write([dpStr]))
+        .then(() => cxns.flush())
+        .then(() => {
           done();
-        }).catch((e) => {
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should catch the invalid float type', (done) => {
-      cxns.connect().then(() => {
-        cxns.write([dpFlt]).catch(() => {
-                    //                done(e)
-        });
+      const cxnp = cxns.connect();
+      const writep = cxnp.then(() => cxns.write([dpFlt]));
+      const flushp = cxnp.then(() => cxns.flush());
 
-        cxns.flush().then(() => {
-          done(new Error('Managed to write value of type Float to field of type Boolean'));
-        }).catch((e) => {
-//                    console.log('second write flush failed - which is correct: ' + e);
-          assert(e.message !== undefined);
-          assert(e.data !== undefined);
-          done();
-        });
-      }).catch((e) => {
+      writep.catch((e) => {
+        console.log(JSON.stringify(e));
+        done();
+      });
+
+      flushp.then(() => {
+        done(new Error('Managed to write value of type Float to field of type String'));
+      });
+      flushp.catch((e) => {
+        assert(e.message !== undefined);
+        assert(e.data !== undefined);
+        done();
+      });
+      // connection issue
+      cxnp.catch((e) => {
         done(e);
       });
     });
