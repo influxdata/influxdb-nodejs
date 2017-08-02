@@ -11,7 +11,7 @@
  *   * Date - a JavaScript date object (it is millisecond-precision)
  *   * Number - millisecond-precision Unix time
  *   * String - nanosecond-precision Unix time as a string. See https://github.com/sazze/node-nanotime if you need to
- *            generate these in Nodejs
+ *            generate these in Node.js
  * @property {Tag[]|Object} tags Tags to be stored together with the data point. Two formats are supported:
  *    * either an array of objects with key/value properties (see the example below) or an object where its property
  *      keys serve as tag keys and object property values as tag values

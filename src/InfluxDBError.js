@@ -12,9 +12,9 @@ class InfluxDBError extends Error {
      */
     constructor(message, data) {
         super(message);
-        this.data=data;
+        this.data = data;
     }
 
 }
 
-module.exports={ InfluxDBError };
+export default InfluxDBError;
