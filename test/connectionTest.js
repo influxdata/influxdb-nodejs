@@ -1,8 +1,9 @@
-let assert = require('assert');
-let InfluxDB=require('../src/InfluxDB');
-let util = require('../scripts/utils.js')
+/* global describe it */
+const assert = require('assert');
+const InfluxDB = require('../src/InfluxDB');
+const util = require('../scripts/utils.js');
 
-describe('Connection test', function(){
+describe('Connection test', () => {
 /*
      describe('#Automatic connect and write', function(){
 
@@ -88,282 +89,266 @@ describe('Connection test', function(){
 
     }); */
 
-    describe('#Cache size automatic write', function(){
+  describe('#Cache size automatic write', () => {
+    const cxnsm = new InfluxDB.Connection({
 
-        let cxnsm = new InfluxDB.Connection({
-
-            database: 'test1',
-            batchSize: 100,
-            maximumWriteDelay: 5000 // set longer write delay to ensure auto write triggered by buffer size
-
-        });
-
-        let testdps = util.buildDatapoints('distance',
-                                   [{name: 'unit', base: 'baker-', type: 'string'}],
-                                   [{name: 'frombase', base: 0, type: 'float'}],
-                                   300) //force buffer to flush three times in succession
-        let chunk_size = 10;
-        //will write in chunks of 10 items
-        let dpchunks = testdps.map( function(e, i){
-            return i%chunk_size===0 ? testdps.slice(i, i+chunk_size) : null
-        }).filter(function(e){ return e;});
-
-        it('should write successive chunks to buffer and trigger write to db', function(done){
-            cxnsm.connect().then(() => {
-                for(let chunk of dpchunks){
-                    cxnsm.write(chunk).catch((e) => {
-                        done(e);
-                    })
-                }
-                done();
-            }).catch((e) => {
-                done(e)
-            })
-        });
-
-        it('should read back the data', function(done){
-
-            cxnsm.connect().then(() => {
-                cxnsm.executeQuery('SELECT * FROM distance').then((result) => {
-                    assert(result.length, testdps.length);
-                    done()
-                }).catch((e) => {
-                    done(e)
-                })
-            }).catch((e) => {
-                done(e)
-            })
-
-        });
-
-        it('shoud drop the test measurement', function(done){
-
-            let result = util.dropMeasurement(cxnsm, 'distance');
-            //take a moment for transaction to complete otherwise lose connection object too soon in some cases
-            util.sleep(1000).then(() => { done(result)});
-
-        })
-
+      database: 'test1',
+      batchSize: 100,
+      maximumWriteDelay: 5000, // set longer write delay, ensure auto write triggered by buffer size
 
     });
 
-    describe('#Timeout expire automatic write', function(){
+    const testdps = util.buildDatapoints('distance',
+      [{ name: 'unit', base: 'baker-', type: 'string' }],
+      [{ name: 'frombase', base: 0, type: 'float' }],
+      300); // force buffer to flush three times in succession
+    const chunkSize = 10;
+    // will write in chunks of 10 items
+    const dpchunks = testdps
+      .map((e, i) => (i % chunkSize === 0 ? testdps.slice(i, i + chunkSize) : null))
+      .filter(e => e);
 
-        let writeDelay = 1000; //default writeDelay
+    console.log('DEBUG dpchunks:');
+    dpchunks.forEach((chunk) => {
+      console.log(JSON.stringify(chunk));
+    });
 
-        let cxnquick = new InfluxDB.Connection({
-
-            database: 'test1',
-            maximumWriteDelay: writeDelay
-
+    it('should write successive chunks to buffer and trigger write to db', (done) => {
+      cxnsm.connect().then(() => {
+        dpchunks.forEach((chunk) => {
+          cxnsm.write(chunk).catch((e) => {
+            done(e);
+          });
         });
+        done();
+      }).catch((e) => {
+        done(e);
+      });
+    });
 
-        let dp1 = {
-            measurement: 'temperature',
-            timestamp: new Date(), //N.B. client should fill in missing timestamp automatically
-            tags: [{ key: 'turbine', value: 'bremerhaven-0013' }],
-            fields: [{ key: 'celsius' , value: '67.3'}]
-        }
-
-        let dp2 = {
-            measurement: 'temperature',
-            timestamp: new Date(),
-            tags: [{ key: 'turbine', value: 'bremerhaven-0017' }],
-            fields: [{ key: 'celsius' , value: '22'}]
-        }
-
-        let dp3 = {
-            measurement: 'temperature',
-            timestamp: new Date(),
-            tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
-            fields: [{ key: 'celsius' , value: '39.5'}]
-        }
-
-        it('should write to db after delay expires', function(done){
-
-            cxnquick.connect().then(() => {
-                cxnquick.write([dp1, dp2, dp3]).then(() => {
-                    done()
-                }).catch((e) => {
-                    done(e)
-                })
-            }).catch((e) => {
-                done(e)
-            })
-
+    it('should read back the data', (done) => {
+      cxnsm.connect().then(() => {
+        cxnsm.executeQuery('SELECT * FROM distance').then((result) => {
+          assert(result.length, testdps.length);
+          done();
+        }).catch((e) => {
+          done(e);
         });
+      }).catch((e) => {
+        done(e);
+      });
+    });
 
-        it('should read back the data after the delay of ' + writeDelay + 'ms expires', function(done){
+    it('shoud drop the test measurement', (done) => {
+      const result = util.dropMeasurement(cxnsm, 'distance');
+      // take a moment for transaction to complete
+      // otherwise lose connection object too soon in some cases
+      util.sleep(1000).then(() => { done(result); });
+    });
+  });
 
-            cxnquick.connect().then(() => {
-                util.sleep(writeDelay).then(() => {
-                    cxnquick.executeQuery('Select * from temperature').then((result) => {
-                        assert.equal(result.length, 3);
-                        for(let dp of result){
-                            switch(dp.turbine){
-                                case 'bremerhaven-0013':
-                                    assert.equal(dp.celsius, dp1.fields[0].value);
-                                    break;
-                                case 'bremerhaven-0017':
-                                    assert.equal(dp.celsius, dp2.fields[0].value);
-                                    break;
-                                case 'bremerhaven-0019':
-                                    assert.equal(dp.celsius, dp3.fields[0].value);
-                                    break;
-                                default:
-                                    throw new Error('Unknown element in results array');
-                                    break;
-                            }
-                        }
-                        done()
-                    }).catch((e) => {
-                        done(e)
-                    })
-                }).catch((e) => {
-                    done(e)
-                })
-            }).catch((e) => {
-                done(e)
-            })
+  describe('#Timeout expire automatic write', () => {
+    const writeDelay = 1000; // default writeDelay
 
-        });
+    const cxnquick = new InfluxDB.Connection({
 
-        it('should drop the test data', function(done){
-
-            let result = util.dropMeasurement(cxnquick, 'temperature');
-            util.sleep(1000).then(() => {
-                done(result)
-            })
-
-        })
+      database: 'test1',
+      maximumWriteDelay: writeDelay,
 
     });
+
+    const dp1 = {
+      measurement: 'temperature',
+      timestamp: new Date(), // N.B. client should fill in missing timestamp automatically
+      tags: [{ key: 'turbine', value: 'bremerhaven-0013' }],
+      fields: [{ key: 'celsius', value: '67.3' }],
+    };
+
+    const dp2 = {
+      measurement: 'temperature',
+      timestamp: new Date(),
+      tags: [{ key: 'turbine', value: 'bremerhaven-0017' }],
+      fields: [{ key: 'celsius', value: '22' }],
+    };
+
+    const dp3 = {
+      measurement: 'temperature',
+      timestamp: new Date(),
+      tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
+      fields: [{ key: 'celsius', value: '39.5' }],
+    };
+
+    it('should write to db after delay expires', (done) => {
+      cxnquick.connect().then(() => {
+        cxnquick.write([dp1, dp2, dp3]).then(() => {
+          done();
+        }).catch((e) => {
+          done(e);
+        });
+      }).catch((e) => {
+        done(e);
+      });
+    });
+
+    it(`should read back the data after the delay of ${writeDelay}ms expires`, (done) => {
+      cxnquick.connect().then(() => {
+        util.sleep(writeDelay).then(() => {
+          cxnquick.executeQuery('Select * from temperature').then((result) => {
+            assert.equal(result.length, 3);
+            result.forEach((dp) => {
+              switch (dp.turbine) {
+                case 'bremerhaven-0013':
+                  assert.equal(dp.celsius, dp1.fields[0].value);
+                  break;
+                case 'bremerhaven-0017':
+                  assert.equal(dp.celsius, dp2.fields[0].value);
+                  break;
+                case 'bremerhaven-0019':
+                  assert.equal(dp.celsius, dp3.fields[0].value);
+                  break;
+                default:
+                  throw new Error('Unknown element in results array');
+              }
+            });
+            done();
+          }).catch((e) => {
+            done(e);
+          });
+        }).catch((e) => {
+          done(e);
+        });
+      }).catch((e) => {
+        done(e);
+      });
+    });
+
+    it('should drop the test data', (done) => {
+      const result = util.dropMeasurement(cxnquick, 'temperature');
+      util.sleep(1000).then(() => {
+        done(result);
+      });
+    });
+  });
 
     /*
        1. should reliably write to influxdb
        2. no need to call flush, wait for buffer to fill or timeout - returns only after write
        3. should be slower than when set to true
      */
-    describe("#autoResolvePromissedWritesToCache - false", function(){
+  describe('#autoResolvePromissedWritesToCache - false', () => {
+    const cxnauto = new InfluxDB.Connection({
+      database: 'test1',
+      autoResolvePromisedWritesToCache: true,
+    });
 
-        let cxnauto = new InfluxDB.Connection({
-            database: 'test1',
-            autoResolvePromisedWritesToCache: true
-        })
-
-        let cxnwait = new InfluxDB.Connection({
-            database: 'test1',
-            autoResolvePromisedWritesToCache: false
-        })
-
-
-        let dps = util.buildDatapoints('temp',
-            [{name: 'thermometer', base: 'tmeter', type: 'string'}],
-            [{name: 'cels', base: 17, type: 'float'}],
-            3000)
-
-        let autoWriteTime = 0
-
-        // get initial time of autoResolvePromisedWritesToCache: true for later comparison
-        cxnauto.connect().then(() => {
-            let start = new Date().getTime();
-            cxnauto.write(dps).then(() => {
-                let end = new Date().getTime();
-                autoWriteTime = end - start;
-            }).catch((e) => {
-                 console.log('error', e)
-            })
-        }).catch((e) => {
-            console.log('error', e)
-        })
-
-        let result = util.dropMeasurement(cxnauto, 'temp');
-        //take a moment for transaction to complete otherwise lose connection object too soon in some cases
-        util.sleep(2000).then(() => { }); //should be dropped
-
-        it('should write points to server and then return promise', function(done){
-
-            let waitWriteTime = 0;
-
-            cxnwait.connect().then(() => {
-                let start = new Date().getTime()
-                cxnwait.write(dps).then(() => {
-                    let end = new Date().getTime()
-                    waitWriteTime = end - start;
-                    console.log(`autoResolvePromisedWritesToCache(false) ${util.pad(waitWriteTime,6,' ')}ms`);
-                    console.log(`autoResolvePromisedWritesToCache(true)  ${util.pad(autoWriteTime, 6, ' ')}ms`);
-                    console.log(`autoResolvePromisedWritesToCache(diff)  ${util.pad(waitWriteTime - autoWriteTime, 6, ' ')}ms`)
-                    assert( waitWriteTime > autoWriteTime)
-                    done()
-                }).catch((e) => {
-                    done(e)
-                })
-            }).catch((e) => {
-                done(e)
-            })
-
-        });
-
-        it('should read the points back', function(done){
-           cxnwait.connect().then(() => {
-
-               cxnwait.executeQuery('select * from temp').then((result) => {
-                   assert(result.length == dps.length)
-                   done()
-               }).catch((e) => {
-                   done(e)
-               })
-
-           }).catch((e) => {
-               done(e)
-           })
-        });
-
-        it('should drop the datapoints', function(done){
-
-            let result = util.dropMeasurement(cxnwait, 'temp');
-            //take a moment for transaction to complete otherwise lose connection object too soon in some cases
-            util.sleep(1000).then(() => { done(result)});
-
-        })
-
+    const cxnwait = new InfluxDB.Connection({
+      database: 'test1',
+      autoResolvePromisedWritesToCache: false,
     });
 
 
-    describe('#autoCreateDatabase: false', function(){
+    const dps = util.buildDatapoints('temp',
+            [{ name: 'thermometer', base: 'tmeter', type: 'string' }],
+            [{ name: 'cels', base: 17, type: 'float' }],
+            3000);
 
-        let existingdb = "reified"
-        let nonexistingdb = "phantomdb"
+    let autoWriteTime = 0;
 
-        let cxnnoexist = new InfluxDB.Connection({
-            database: nonexistingdb,
-            autoCreateDatabase: false
+        // get initial time of autoResolvePromisedWritesToCache: true for later comparison
+    cxnauto.connect().then(() => {
+      const start = new Date().getTime();
+      cxnauto.write(dps).then(() => {
+        const end = new Date().getTime();
+        autoWriteTime = end - start;
+      }).catch((e) => {
+        console.log('error', e);
+      });
+    }).catch((e) => {
+      console.log('error', e);
+    });
+
+    util.dropMeasurement(cxnauto, 'temp');
+        // take a moment for transaction to complete
+    // otherwise lose connection object too soon in some cases
+    util.sleep(2000).then(() => { }); // should be dropped
+
+    it('should write points to server and then return promise', (done) => {
+      let waitWriteTime = 0;
+
+      cxnwait.connect().then(() => {
+        const start = new Date().getTime();
+        cxnwait.write(dps).then(() => {
+          const end = new Date().getTime();
+          waitWriteTime = end - start;
+          console.log(`test ${util.pad(31, 10, '0')}`);
+          console.log(`autoResolvePromisedWritesToCache(false) ${util.pad(waitWriteTime, 6, ' ')}ms`);
+          console.log(`autoResolvePromisedWritesToCache(true)  ${util.pad(autoWriteTime, 6, ' ')}ms`);
+          console.log(`autoResolvePromisedWritesToCache(diff)  ${util.pad(waitWriteTime - autoWriteTime, 6, ' ')}ms`);
+          assert(waitWriteTime > autoWriteTime);
+          done();
+        }).catch((e) => {
+          done(e);
         });
+      }).catch((e) => {
+        done(e);
+      });
+    });
 
-        let cxnsetup = new InfluxDB.Connection({
-            database: existingdb,
-            autoCreateDatabase: true
+    it('should read the points back', (done) => {
+      cxnwait.connect().then(() => {
+        cxnwait.executeQuery('select * from temp').then((result) => {
+          assert(result.length === dps.length);
+          done();
+        }).catch((e) => {
+          done(e);
         });
+      }).catch((e) => {
+        done(e);
+      });
+    });
 
-        let cxnexist = new InfluxDB.Connection({
-            database: existingdb,
-            autoCreateDatabase: false
-        });
+    it('should drop the datapoints', (done) => {
+      const result = util.dropMeasurement(cxnwait, 'temp');
+      // take a moment for transaction to complete
+      // otherwise lose connection object too soon in some cases
+      util.sleep(1000).then(() => { done(result); });
+    });
+  });
 
-        let testdp = {
-            measurement: 'flips',
-            timestamp: new Date(),
-            tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
-            fields: [{ key: 'flops' , value: '99'}]
-        }
 
-        it('should set up a preexisting database', function(done){
-            cxnsetup.connect().then(() => {
-                done()
-            }).catch((e) => {
-                done(e)
-            })
-        });
+  describe('#autoCreateDatabase: false', () => {
+    const existingdb = 'reified';
+//    const nonexistingdb = 'phantomdb';
+/*
+    const cxnnoexist = new InfluxDB.Connection({
+      database: nonexistingdb,
+      autoCreateDatabase: false,
+    });
+*/
+    const cxnsetup = new InfluxDB.Connection({
+      database: existingdb,
+      autoCreateDatabase: true,
+    });
+
+    const cxnexist = new InfluxDB.Connection({
+      database: existingdb,
+      autoCreateDatabase: false,
+    });
+
+    const testdp = {
+      measurement: 'flips',
+      timestamp: new Date(),
+      tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
+      fields: [{ key: 'flops', value: '99' }],
+    };
+
+    it('should set up a preexisting database', (done) => {
+      cxnsetup.connect().then(() => {
+        done();
+      }).catch((e) => {
+        done(e);
+      });
+    });
 
 /*
         it('should fail to write to a non-existant database', function(done){
@@ -395,131 +380,118 @@ describe('Connection test', function(){
 
         }); */
 
-        it('should write to an existing database', function(done){
-            cxnexist.connect().then(() => {
-                cxnexist.write([testdp],true).then(() => {
-                    done()
-                }).catch((e) => {
-                    done(e)
-                })
-
-            }).catch((e) => {
-                done(e)
-            })
-        })
-
-        it('should read back the data from the existing database', function(done){
-            util.sleep(500).then(() => {
-                cxnexist.connect().then(() => {
-                    cxnexist.executeQuery('select * from flips').then((result) => {
-                        try {
-                            assert(result.length > 0)
-                            done()
-                        }catch(e){
-                            done(e)
-                        }
-                    }).catch((e) => {
-                        done(e)
-                    })
-                }).catch((e) => {
-                    done(e)
-                })
-            })
-        })
-
-        it('should drop the database just created', function(done){
-            //wait to make sure other operations have completed
-            util.sleep(1000).then(() => {
-                cxnsetup.connect().then(() => {
-                    cxnsetup.executeQuery(`DROP DATABASE ${existingdb}`).then(() => {
-                        done()
-                    }).catch((e) => {
-                        done(e)
-                    })
-
-                })
-            })
-        })
-
-    })
-
-    describe('#Disable batching', function(){
-
-        it('should automatically write when batch size is 0', function(done){
-
-            let cxnbatch0 = new InfluxDB.Connection({
-                database: 'test2',
-                batchSize: 0
-            })
-
-            let testdp = {
-                measurement: 'flips',
-                timestamp: new Date(),
-                tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
-                fields: [{ key: 'flops' , value: '99'}]
-            }
-
-            cxnbatch0.connect().then(() => {
-
-                cxnbatch0.write([testdp]).then(() => {
-                    util.sleep(500).then(() => {
-                        cxnbatch0.executeQuery("SELECT * FROM flips").then((result) => {
-                            try{
-                                assert(result.length > 0);
-                                done(util.dropMeasurement(cxnbatch0, 'flips'))
-                            }catch(e){
-                                done(e)
-                            }
-                        })
-                    })
-                }).catch((e) => {
-                    done(e)
-                })
-
-            }).catch((e) => {
-                done(e)
-            })
-
-        })
-
-        it('Should automatically write when minimumWriteDelay is 0', function(done){
-
-            let cxndelay0 = new InfluxDB.Connection({
-                database: 'test2',
-                maximumWriteDelay: 0
-            })
-
-            let testdp = {
-                measurement: 'flops',
-                timestamp: new Date(),
-                tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
-                fields: [{ key: 'flips' , value: '99'}]
-            }
-
-            cxndelay0.connect().then(() => {
-
-                cxndelay0.write([testdp]).then(() => {
-                    util.sleep(500).then(() => {
-                        cxndelay0.executeQuery("SELECT * FROM flops").then((result) => {
-                            try{
-                                assert(result.length > 0);
-                                done(util.dropMeasurement(cxndelay0, 'flops'))
-                            }catch(e){
-                                done(e)
-                            }
-                        })
-                    })
-                }).catch((e) => {
-                    done(e)
-                })
-
-            }).catch((e) => {
-                done(e)
-            })
-
-        })
-
+    it('should write to an existing database', (done) => {
+      cxnexist.connect().then(() => {
+        cxnexist.write([testdp], true).then(() => {
+          done();
+        }).catch((e) => {
+          done(e);
+        });
+      }).catch((e) => {
+        done(e);
+      });
     });
+
+    it('should read back the data from the existing database', (done) => {
+      util.sleep(500).then(() => {
+        cxnexist.connect().then(() => {
+          cxnexist.executeQuery('select * from flips').then((result) => {
+            try {
+              assert(result.length > 0);
+              done();
+            } catch (e) {
+              done(e);
+            }
+          }).catch((e) => {
+            done(e);
+          });
+        }).catch((e) => {
+          done(e);
+        });
+      });
+    });
+
+    it('should drop the database just created', (done) => {
+            // wait to make sure other operations have completed
+      util.sleep(1000).then(() => {
+        cxnsetup.connect().then(() => {
+          cxnsetup.executeQuery(`DROP DATABASE ${existingdb}`).then(() => {
+            done();
+          }).catch((e) => {
+            done(e);
+          });
+        });
+      });
+    });
+  });
+
+  describe('#Disable batching', () => {
+    it('should automatically write when batch size is 0', (done) => {
+      const cxnbatch0 = new InfluxDB.Connection({
+        database: 'test2',
+        batchSize: 0,
+      });
+
+      const testdp = {
+        measurement: 'flips',
+        timestamp: new Date(),
+        tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
+        fields: [{ key: 'flops', value: '99' }],
+      };
+
+      cxnbatch0.connect().then(() => {
+        cxnbatch0.write([testdp]).then(() => {
+          util.sleep(500).then(() => {
+            cxnbatch0.executeQuery('SELECT * FROM flips').then((result) => {
+              try {
+                assert(result.length > 0);
+                done(util.dropMeasurement(cxnbatch0, 'flips'));
+              } catch (e) {
+                done(e);
+              }
+            });
+          });
+        }).catch((e) => {
+          done(e);
+        });
+      }).catch((e) => {
+        done(e);
+      });
+    });
+
+    it('Should automatically write when minimumWriteDelay is 0', (done) => {
+      const cxndelay0 = new InfluxDB.Connection({
+        database: 'test2',
+        maximumWriteDelay: 0,
+      });
+
+      const testdp = {
+        measurement: 'flops',
+        timestamp: new Date(),
+        tags: [{ key: 'turbine', value: 'bremerhaven-0019' }],
+        fields: [{ key: 'flips', value: '99' }],
+      };
+
+      cxndelay0.connect().then(() => {
+        cxndelay0.write([testdp]).then(() => {
+          util.sleep(500).then(() => {
+            cxndelay0.executeQuery('SELECT * FROM flops').then((result) => {
+              try {
+                assert(result.length > 0);
+                done(util.dropMeasurement(cxndelay0, 'flops'));
+              } catch (e) {
+                done(e);
+              }
+            });
+          });
+        }).catch((e) => {
+          done(e);
+        });
+      }).catch((e) => {
+        done(e);
+      });
+    });
+  });
 
     /*
     2017.07.20 not yet implemented
@@ -561,5 +533,4 @@ describe('Connection test', function(){
 
     });
     */
-
 });

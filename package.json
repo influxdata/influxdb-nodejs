@@ -40,10 +40,10 @@
     "babel-register": "^6.24.1",
     "chai": "^3.5.0",
     "cross-env": "^3.0.0",
+    "esdoc-node": "^1.0.2",
     "eslint": "^3.19.0",
     "eslint-config-airbnb-base": "^11.2.0",
     "eslint-plugin-import": "^2.7.0",
-    "esdoc-node": "^1.0.2",
     "istanbul": "^0.4.5",
     "mocha": "^3.0.2"
   },

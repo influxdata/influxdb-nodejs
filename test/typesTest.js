@@ -54,18 +54,22 @@ describe('InfluxDB.types', () => {
         timestamp: new Date().getTime() + 1000000,
         fields: [{ key: 'kwatts', value: 49 }],
       };
-      connection.connect().then(() => {
-        connection.write([dPF1]).then(() => {
-          connection.flush().then(() => {
-            done(new Error('tags are not properly checked'));
-          }).catch((e) => {
-            console.log('ERROR ON FLUSH');
-            done(e);
-          });
-        }).catch(() => {
-          done();
-        });
-      }).catch((e) => {
+      const cxnp = connection.connect();
+      const writep = cxnp.then(() => connection.write([dPF1]));
+      const flushp = writep.then(() => connection.flush());
+
+      flushp.then(() => {
+        done(new Error('tags are not properly checked'));
+      });
+
+      writep.catch((e) => {
+        console.log('Caught schema violation');
+        console.log(e);
+        done();
+      });
+
+      // connection issue
+      cxnp.catch((e) => {
         done(e);
       });
     });
@@ -76,19 +80,15 @@ describe('InfluxDB.types', () => {
         timestamp: new Date().getTime() + 1000000,
         fields: [{ key: 'kwatts', value: 49 }],
       };
-      connection.connect().then(() => {
-        connection.write([dPF1]).then(() => {
-          connection.flush().then(() => {
-            done();
-          }).catch((e) => {
-            done(e);
-          });
-        }).catch((e) => {
+      connection.connect()
+        .then(() => connection.write([dPF1]))
+        .then(() => connection.flush())
+        .then(() => {
+          done();
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
   });
 
@@ -115,35 +115,33 @@ describe('InfluxDB.types', () => {
         fields: [{ key: 'kwatts', value: 5.009e+1 }],
       };
 
-      connection.connect().then(() => {
-        connection.write([dPF1, dPF2, dPF3]).then(() => {
-          connection.flush().then(() => {
-            done();
-          }).catch((e) => {
-            done(e);
-          });
-        }).catch((e) => {
+      connection.connect()
+        .then(() => connection.write([dPF1, dPF2, dPF3]))
+        .then(() => connection.flush())
+        .then(() => {
+          done();
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should verify the field type in Influx', (done) => {
-      connection.connect().then(() => {
-        connection.executeQuery('SHOW FIELD KEYS').then((result) => {
+      connection.connect()
+        .then(() => connection.executeQuery('SHOW FIELD KEYS'))
+        .then((result) => {
           assert.equal(util.getFieldType(result, 'kwatts'), 'float');
           done();
-        }).catch((e) => {
+        })
+        .catch((e) => {
           done(e);
         });
-      });
     });
 
     it('should read back the float values', (done) => {
-      connection.connect().then(() => {
-        connection.executeQuery('select * from powerf').then((result) => {
+      connection.connect()
+        .then(() => connection.executeQuery('select * from powerf'))
+        .then((result) => {
           assert.equal(result.length, 3);
           result.forEach((elem) => {
             switch (elem.location) {
@@ -163,12 +161,10 @@ describe('InfluxDB.types', () => {
             }
           });
           done();
-        }).catch((e) => {
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should drop the float values', (done) => {
@@ -199,35 +195,32 @@ describe('InfluxDB.types', () => {
         fields: [{ key: 'rpms', value: Number.MIN_SAFE_INTEGER }], // , type: FieldType.INTEGER}]
       };
 
-      connection.connect().then(() => {
-        connection.write([dPI1, dPI2, dPI3]).then(() => {
-          connection.flush().then(() => {
-            done();
-          }).catch((e) => {
-            done(e);
-          });
-        }).catch((e) => {
+      connection.connect()
+        .then(() => connection.write([dPI1, dPI2, dPI3]))
+        .then(() => connection.flush())
+        .then(() => {
+          done();
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should verify the field type in Influx', (done) => {
-      connection.connect().then(() => {
-        connection.executeQuery('SHOW FIELD KEYS').then((result) => {
+      connection.connect()
+        .then(() => connection.executeQuery('SHOW FIELD KEYS'))
+        .then((result) => {
           assert.equal(util.getFieldType(result, 'rpms'), 'integer');
           done();
         }).catch((e) => {
           done(e);
         });
-      });
     });
 
     it('should read back the integer values', (done) => {
-      connection.connect().then(() => {
-        connection.executeQuery('select * from testint').then((result) => {
+      connection.connect()
+        .then(() => connection.executeQuery('select * from testint'))
+        .then((result) => {
           assert.equal(result.length, 3);
           result.forEach((dp) => {
             switch (dp.location) {
@@ -247,12 +240,10 @@ describe('InfluxDB.types', () => {
             }
           });
           done();
-        }).catch((e) => {
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should drop the integer values', (done) => {
@@ -261,8 +252,10 @@ describe('InfluxDB.types', () => {
   });
 
   describe('#Strings', () => {
-    const jsonTestStr = '{ type: \'widget\', name: \'kralik\', id: 123456789 }';
-    const qlTestStr = 'SELECT * FROM teststr';
+//  N.B. these values were originally conceived for tests of escaping strings that could
+//  present a security risk. This use case is not practical at this time.
+//    const jsonTestStr = '{ type: \'mischief\', id: \'escape-or-fail-me\', volts: 12.3 }';
+//    const qlTestStr = 'SELECT * FROM moremischief';
 
     const dpS1 = {
       measurement: 'teststr',
@@ -275,47 +268,43 @@ describe('InfluxDB.types', () => {
       measurement: 'teststr',
       timestamp: new Date(),
       tags: [{ key: 'location', value: 'Turbine0018' }],
-      fields: [{ key: 'status', value: jsonTestStr }],
+      fields: [{ key: 'status', value: 'WARNING' }],
     };
 
     const dpS3 = {
       measurement: 'teststr',
       timestamp: new Date(),
       tags: [{ key: 'location', value: 'Turbine0019' }],
-      fields: [{ key: 'status', value: qlTestStr }],
+      fields: [{ key: 'status', value: 'OFFLINE' }],
     };
 
-    it('should write strings', (done) => {
-      connection.connect().then(() => {
-        connection.write([dpS1, dpS2, dpS3]).then(() => {
-          connection.flush().then(() => {
-            done();
-          }).catch((e) => {
-            done(e);
-          });
-        }).catch((e) => {
+    it('should write legitimate strings', (done) => {
+      connection.connect()
+        .then(() => connection.write([dpS1, dpS2, dpS3]))
+        .then(() => connection.flush())
+        .then(() => {
+          done();
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should verify the field type in Influx', (done) => {
-      connection.connect().then(() => {
-        connection.executeQuery('SHOW FIELD KEYS').then((result) => {
+      connection.connect()
+        .then(() => connection.executeQuery('SHOW FIELD KEYS'))
+        .then((result) => {
           assert.equal(util.getFieldType(result, 'status'), 'string');
           done();
         }).catch((e) => {
           done(e);
         });
-      });
     });
 
-
     it('should read the strings back', (done) => {
-      connection.connect().then(() => {
-        connection.executeQuery('select * from teststr').then((result) => {
+      connection.connect()
+        .then(() => connection.executeQuery('select * from teststr'))
+        .then((result) => {
           assert.equal(result.length, 3);
           result.forEach((dp) => {
             switch (dp.location) {
@@ -323,10 +312,10 @@ describe('InfluxDB.types', () => {
                 assert.equal(dp.status, 'OK');
                 break;
               case 'Turbine0018':
-                assert.equal(dp.status, jsonTestStr);
+                assert.equal(dp.status, 'WARNING');
                 break;
               case 'Turbine0019':
-                assert.equal(dp.status, qlTestStr);
+                assert.equal(dp.status, 'OFFLINE');
                 break;
               default:
                 assert.fail(dp.status, dp.location,
@@ -335,12 +324,10 @@ describe('InfluxDB.types', () => {
             }
           });
           done();
-        }).catch((e) => {
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should drop the datapoints', (done) => {
@@ -386,38 +373,32 @@ describe('InfluxDB.types', () => {
     };
 
     it('should write booleans', (done) => {
-      connection.connect().then(() => {
-        connection.write([dpB1, dpB2, dpB3, dpB4, dpB5]).then(() => {
-//                        done()
-        }).catch((e) => {
-          done(e);
-        });
-
-        connection.flush().then(() => {
+      connection.connect()
+        .then(() => connection.write([dpB1, dpB2, dpB3, dpB4, dpB5]))
+        .then(() => connection.flush())
+        .then(() => {
           done();
-        }).catch((e) => {
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should verify the field type in Influx', (done) => {
-      connection.connect().then(() => {
-        connection.executeQuery('SHOW FIELD KEYS').then((result) => {
+      connection.connect()
+        .then(() => connection.executeQuery('SHOW FIELD KEYS'))
+        .then((result) => {
           assert.equal(util.getFieldType(result, 'online'), 'boolean');
           done();
         }).catch((e) => {
           done(e);
         });
-      });
     });
 
-
     it('should read the booleans back', (done) => {
-      connection.connect().then(() => {
-        connection.executeQuery('select * from testbool').then((result) => {
+      connection.connect()
+        .then(() => connection.executeQuery('select * from testbool'))
+        .then((result) => {
           assert.equal(result.length, 5);
           result.forEach((dp) => {
             switch (dp.location) {
@@ -437,12 +418,10 @@ describe('InfluxDB.types', () => {
             }
           });
           done();
-        }).catch((e) => {
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should drop the datapoints', (done) => {
@@ -478,39 +457,35 @@ describe('InfluxDB.types', () => {
     };
 
     it('should write the initial float', (done) => {
-      cxnf.connect().then(() => {
-        cxnf.write([dpFlt]).then(() => {
-
-        }).catch((e) => {
-          done(e);
-        });
-
-        cxnf.flush().then(() => {
+      cxnf.connect()
+        .then(() => cxnf.write([dpFlt]))
+        .then(() => cxnf.flush())
+        .then(() => {
           done();
-        }).catch((e) => {
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should catch the invalid string type', (done) => {
-      cxnf.connect().then(() => {
-        cxnf.write([dpStr]).catch(() => {
-    //                done(e)
-        });
+      const cxnp = cxnf.connect();
+      const writep = cxnp.then(() => cxnf.write([dpStr]));
+      const flushp = writep.then(() => cxnf.flush());
+      writep.catch((e) => {
+        console.log(JSON.stringify(e));
+        done();
+      });
 
-        cxnf.flush().then(() => {
-          done(new Error('Managed to write value of type String to field of type Float'));
-        }).catch((e) => {
-//                    console.log('second write flush failed - which is correct: ' + e);
-          assert(e.message !== undefined);
-          assert(e.data !== undefined);
-          done();
-        });
-      }).catch((e) => {
-        done(e);
+      flushp.then(() => {
+        done(new Error('Managed to write value of type String to field of type Float'));
+      });
+      flushp.catch((e) => {
+//      console.log('second write flush failed - which is correct: ' + e);
+        console.log(JSON.stringify(e));
+        assert(e.message !== undefined);
+        assert(e.data !== undefined);
+        done();
       });
     });
 
@@ -547,37 +522,37 @@ describe('InfluxDB.types', () => {
     };
 
     it('should write the initial int', (done) => {
-      cxni.connect().then(() => {
-        cxni.write([dpInt]).then(() => {
-
-        }).catch((e) => {
-          done(e);
-        });
-
-        cxni.flush().then(() => {
+      cxni.connect()
+        .then(() => cxni.write([dpInt]))
+        .then(() => cxni.flush())
+        .then(() => {
           done();
-        }).catch((e) => {
+        })
+        .catch((e) => {
           done(e);
         });
-      }).catch((e) => {
-        done(e);
-      });
     });
 
     it('should catch the invalid float type', (done) => {
-      cxni.connect().then(() => {
-        cxni.write([dpFlt]).catch(() => {
-                    //                done(e)
-        });
+      const cxnp = cxni.connect();
+      const writep = cxnp.then(() => cxni.write([dpFlt]));
+      const flushp = writep.then(() => cxni.flush());
+      // catch invalid type in buffer
+      writep.catch((e) => {
+        console.log(JSON.stringify(e));
+        done();
+      });
 
-        cxni.flush().then(() => {
-          done(new Error('Managed to write value of type Float to field of type Integer'));
-        }).catch((e) => {
-          assert(e.message !== undefined);
-          assert(e.data !== undefined);
-          done();
-        });
-      }).catch((e) => {
+      flushp.then(() => {
+        done(new Error('Managed to write value of type Float to field of type Integer'));
+      });
+      flushp.catch((e) => {
+        assert(e.message !== undefined);
+        assert(e.data !== undefined);
+        done();
+      });
+      // connection issue
+      cxnp.catch((e) => {
         done(e);
       });
     });
