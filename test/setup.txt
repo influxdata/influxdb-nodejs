@@ -9,5 +9,5 @@
 > revoke write on "for_otto" from "otto";
 > create user helmut with password 'noname'
 > revoke all from helmut;
-
+influx
 

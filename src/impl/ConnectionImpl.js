@@ -1,5 +1,6 @@
-import * as request from 'request';
+import * as RequestPromise from 'request-promise';
 import * as _ from 'lodash';
+/** @namespace JSON */
 
 import InfluxDBError from '~/InfluxDBError';
 import WriteBuffer from '~/impl/WriteBuffer';
@@ -15,11 +16,19 @@ class ConnectionImpl {
         this.schemas = {};
         this.options = ConnectionImpl.calculateOptions(options);
         this.schemas = ConnectionImpl.prepareSchemas(options.schema);
+        // for convenience of the user ignore a slash at the end of the URL
         this.hostUrl = ConnectionImpl.stripTrailingSlashIfNeeded(this.options.hostUrl);
+        // buffer for data points, new instance is created for every batch
         this.writeBuffer = new WriteBuffer(this.schemas, this.options.autoGenerateTimestamps);
+        // timer handle used to flush the buffer when it becomes too old
         this.bufferFlushTimerHandle = null;
+        // unique ID of this connection
         this.connectionId = ConnectionTracker.generateConnectionID();
+        // becomes true when connection to InfluxDB gets verified either automatically or by
+        // calling connect()
         this.connected = false;
+        // becomes false after the user explicitly calls disconnect(); the connection will
+        // not be usable without reconnecting
         this.disconnected = false;
     }
 
@@ -160,43 +169,38 @@ class ConnectionImpl {
 
         const url = `${this.hostUrl}/write?db=${this.options.database}`;
 
-        return new Promise((resolve, reject) => {
-            let bodyBuffer = flushedWriteBuffer.stream.getContents();
-            request.post({
-                    url: url,
-                    method: 'POST',
-                    headers: {"Content-Type": "application/text"},
-                    body: bodyBuffer,
-                    auth: {
-                        user: this.options.username,
-                        pass: this.options.password
-                    }
-                },
-                (error, result) => {
-                    if (error) {
-                        reject(error);
-                        flushedWriteBuffer.rejectWritePromises(error);
-                    }
-                    else {
-                        if (result.statusCode >= 200 && result.statusCode < 400) {
-                            flushedWriteBuffer.resolveWritePromises();
-                            resolve();
-                        }
-                        else {
-                            let message = `Influx db write failed ${result.statusCode}`;
-                            // add information returned by the server if possible
-                            try {
-                                message += ': ' + JSON.parse(result.body).error;
-                            }
-                            catch (e) {
-                            }
-                            let error = new InfluxDBError(message, bodyBuffer.toString());
-                            flushedWriteBuffer.rejectWritePromises(error);
-                            reject(error);
-                        }
-                    }
+        let bodyBuffer = flushedWriteBuffer.stream.getContents();
+        //noinspection JSUnresolvedFunction - for RequestPromise.Request
+        return new RequestPromise.Request({
+            resolveWithFullResponse: true,
+            url: url,
+            method: 'POST',
+            headers: {"Content-Type": "application/text"},
+            body: bodyBuffer,
+            auth: {
+                user: this.options.username,
+                pass: this.options.password
+            }
+        }).then((result) => {
+            if (result.statusCode >= 200 && result.statusCode < 400) {
+                flushedWriteBuffer.resolveWritePromises();
+            }
+            else {
+                let message = `Influx db write failed ${result.statusCode}`;
+                // add information returned by the server if possible
+                try {
+                    message += ': ' + JSON.parse(result.body).error;
                 }
-            );
+                catch (e) {
+                }
+                let error = new InfluxDBError(message, bodyBuffer.toString());
+                flushedWriteBuffer.rejectWritePromises(error);
+                return Promise.reject(error);
+            }
+        }).catch((e) => {
+            const error=new InfluxDBError(`Cannot write data to InfluxDB, reason: ${e.message}`);
+            flushedWriteBuffer.rejectWritePromises(error);
+            return Promise.reject(error);
         });
     }
 
@@ -211,45 +215,41 @@ class ConnectionImpl {
     }
 
     executeInternalQuery(query, database) {
-        return new Promise((resolve, reject) => {
-            const db = !database ? this.options.database : database;
-            const url = `${this.hostUrl}/query?db=${encodeURIComponent(db)}&q=${encodeURIComponent(query)}`;
-            request.post({
-                    url: url,
-                    auth: {
-                        user: this.options.username,
-                        pass: this.options.password
-                    }
-                },
-                (error, result) => {
-                    if (error) {
-                        reject(error);
-                    }
-                    else {
-                        if (result.statusCode >= 200 && result.statusCode < 400) {
-                            let contentType = result.headers['content-type'];
-                            if (contentType === 'application/json') {
-                                const data = JSON.parse(result.body);
-                                if (data.results[0].error) reject(new InfluxDBError(data.results[0].error));
-                                resolve(data);
-                            }
-                            else {
-                                reject(new InfluxDBError(`Unexpected result content-type: ${contentType}`));
-                            }
-                        }
-                        else {
-                            const error = new InfluxDBError(`HTTP ${result.statusCode} communication error`);
-                            reject(error);
-                        }
-                    }
+        const db = !database ? this.options.database : database;
+        const url = `${this.hostUrl}/query?db=${encodeURIComponent(db)}&q=${encodeURIComponent(query)}`;
+        //noinspection JSUnresolvedFunction - for RequestPromise.Request
+        return new RequestPromise.Request({
+            resolveWithFullResponse: true,
+            url: url,
+            auth: {
+                user: this.options.username,
+                pass: this.options.password
+            }
+        }).then((result) => {
+            if (result.statusCode >= 200 && result.statusCode < 400) {
+                let contentType = result.headers['content-type'];
+                if (contentType === 'application/json') {
+                    const data = JSON.parse(result.body);
+                    if (data.results[0].error) return Promise.reject(new InfluxDBError(data.results[0].error));
+                    return Promise.resolve(data);
                 }
-            );
+                else {
+                    return Promise.reject(new InfluxDBError(`Unexpected result content-type: ${contentType}`));
+                }
+            }
+            else {
+                const error = new InfluxDBError(`HTTP ${result.statusCode} communication error`);
+                return Promise.reject(error);
+            }
+        }).catch((e) => {
+            return Promise.reject(new InfluxDBError(`Cannot read data from InfluxDB, reason: ${e.message}`));
         });
     }
 
     static postProcessQueryResults(results) {
         const outcome = [];
         _.forEach(results.results, (result) => {
+            //noinspection JSUnresolvedVariable
             _.forEach(result.series, (series) => {
                 // use for loops form now on to get better performance
                 for (let values of series.values) {
@@ -279,20 +279,35 @@ class ConnectionImpl {
 
     connect() {
         if (this.options.autoCreateDatabase) {
-            // this works because:
-            //  1) create database operation is idempotent
-            //  2) the create database operation doesn't require any privileges
+            // This works because create database operation is idempotent; unfortunately,
+            // SHOW DATABASES requires the same admin permissions as CREATE DATABASE. Therefore
+            // there is no point in trying to list the databases first and checking for the one
+            // the user is trying to use.
             return this.executeInternalQuery(`CREATE DATABASE ${this.options.database}`).then(() => {
                 this.connected = true;
                 this.disconnected = false;
             });
         }
         else {
-            this.executeInternalQuery('SHOW DATABASES').then((databases) => {
+            let result = this.executeInternalQuery('SHOW DATABASES').then((databases) => {
                 this.connected = this.doesDatabaseExists(databases);
                 this.disconnected = !this.connected;
-                if (!this.connected) new InfluxDBError(`Database '${this.options.database}' does not exist`);
+                if (!this.connected)
+                    return result.reject(new InfluxDBError(`Database '${this.options.database}' does not exist`));
+            }).catch(() => {
+                // When user authentication is in use, SHOW DATABASES will fail due to insufficient user privileges
+                // Therefore we try if the server is alive at least...
+                const url = `${this.hostUrl}/ping`;
+                //noinspection JSUnresolvedFunction
+                return new RequestPromise.Request({uri: url}).then(() => {
+                    this.connected = true;
+                    this.disconnected = false;
+                }).catch((e) => {
+                    return Promise.reject(
+                        new InfluxDBError(`Unable to contact InfluxDB, ping operation on '${url}' failed, reason: ${e.message}`));
+                });
             });
+            return result;
         }
     }
 
@@ -304,8 +319,11 @@ class ConnectionImpl {
     }
 
     doesDatabaseExists(showDatabasesResult) {
-        // there is always _internal database available/visible by any user
+        // there is always _internal database available/visible
+        // noinspection JSUnresolvedVariable - we don't want to document InfluxDB result format here
         const values = showDatabasesResult.results[0].series[0].values;
+        // this is a lodash problem; it doesn't declare string parameter but it is documented
+        // noinspection JSCheckFunctionSignatures
         return _.findIndex(values, this.options.database) >= 0;
     }
 

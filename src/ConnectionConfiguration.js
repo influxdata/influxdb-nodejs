@@ -6,7 +6,9 @@
  * @property {String} [username='root'] Username for connecting to the database.
  * @property {String} [password='root'] Password for connecting to the database.
  * @property {String} [database] Database to work with
- * @property {Boolean} [autoCreateDatabase=true] Automatically create database if it doesn't exist yet
+ * @property {Boolean} [autoCreateDatabase=true] Automatically create database if it doesn't exist yet. To successfully
+ *      connect to InfluxDB with autoCreateDatabase=true the database user authentication must be turned off or
+ *      you must have admin privileges granted
  * @property {String} [hostUrl='http://127.0.0.1:8086'] InfluxDB host url to connect to. For InfluxCloud use https scheme
  *      and don't forget to pass username and password properties. For UDP access use a URL
  *      in the following form: udp://127.0.0.1:8089. For more information on using the UDP InfluxDB service check the

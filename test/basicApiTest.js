@@ -4,8 +4,12 @@ let InfluxDB=require('../src/InfluxDB');
 describe('InfluxDB.Connection', function() {
     describe('#connect()', function() {
         it('should connect to DB', function (done) {
+
             let connection = new InfluxDB.Connection({
-                database: 'test1'
+                database: 'for_otto',
+                username: 'otto',
+                password: 'noname',
+                autoCreateDatabase: false
             });
 
             /* Test against cloud
