@@ -55,23 +55,23 @@ You may [check the reference documentation as well.](https://dubsky.bitbucket.io
         const dataPoint2 = {
             measurement : 'outdoorThermometer',
             timestamp: new Date().getTime()+1000000,
-            tags: [
-                {
-                    key: 'location',
-                    value: 'outdoor'
+            tags: [ 
+                { 
+                    key: 'location', 
+                    value: 'outdoor' 
                 }
             ],
-            fields: [
-                {
-                    key: 'temperature',
-                    value: 23.7
-                }
+            fields: [ 
+                { 
+                    key: 'temperature', 
+                    value: 23.7 
+                } 
             ]
         };
 
         const series = [dataPoint1, dataPoint2];
         connection.write(series).catch(console.error);
-
+        
         connection.flush().then(() => {
             console.log('Data written into InfluxDB')
         }).catch(console.error);
