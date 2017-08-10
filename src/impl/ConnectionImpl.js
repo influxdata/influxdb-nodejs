@@ -57,8 +57,8 @@ class ConnectionImpl {
     }
 
     static calculateOptions(options) {
-        if (!options.database) throw new InfluxDBError("'database' option must be specified");
         const results = {};
+        if (!options.database) throw new InfluxDBError("'database' option must be specified");
         Object.assign(results, DefaultConnectionOptions);
         Object.assign(results, options);
         return results;
@@ -83,7 +83,6 @@ class ConnectionImpl {
                     return Promise.reject(new InfluxDBError('Invalid arguments supplied'));
             }
             if (dataPoints.length === 0) return this.writeEmptySetOfPoints(forceFlush);
-
             return this.whenConnected(() => {
                 return this.writeWhenConnectedAndInputValidated(dataPoints, forceFlush);
             });
@@ -101,46 +100,37 @@ class ConnectionImpl {
     }
 
     writeWhenConnectedAndInputValidated(dataPoints, forceFlush) {
-        if (this.writeBuffer.firstWriteTimestamp === null) this.writeBuffer.firstWriteTimestamp = new Date().getTime();
         const batchSizeLimitNotReached = this.options.batchSize > 0 &&
             (this.writeBuffer.batchSize + dataPoints.length < this.options.batchSize);
-        const timeoutLimitNotReached = this.options.maximumWriteDelay > 0 &&
+        const timeoutLimitNotReached = this.writeBuffer.firstWriteTimestamp === null ||
+            this.options.maximumWriteDelay > 0 &&
             (new Date().getTime() - this.writeBuffer.firstWriteTimestamp < this.options.maximumWriteDelay);
+        // assign the buffer the date of first use
+        if (this.writeBuffer.firstWriteTimestamp === null) this.writeBuffer.firstWriteTimestamp = new Date().getTime();
         if (batchSizeLimitNotReached && timeoutLimitNotReached && !forceFlush) {
+            // just write into the buffer
             return this.promiseBufferedWrite(dataPoints);
         }
         else {
+            // write to InfluxDB now
             this.writeBuffer.write(dataPoints);
             return this.flush();
         }
     }
 
     promiseBufferedWrite(dataPoints) {
+        this.writeBuffer.write(dataPoints);
+        ConnectionTracker.startTracking(this);
+        this.scheduleFlush(() => { this.flush(); }, this.options.maximumWriteDelay);
+
         if (this.options.autoResolveBufferedWritePromises) {
-            this.directBufferedWrite(dataPoints);
             return Promise.resolve();
         }
         else {
-            let promise = new Promise(() => {
-                this.directBufferedWrite(dataPoints)
-            });
+            let promise = new Promise();
             this.writeBuffer.addWritePromiseToResolve(promise);
             return promise;
         }
-    }
-
-    directBufferedWrite(dataPoints) {
-        this.writeBuffer.write(dataPoints);
-        // make the shutdown hook aware of buffered writes
-        ConnectionTracker.startTracking(this);
-
-        this.scheduleFlush(() => {
-            this.flush().then().catch((e) => {
-                if (this.options.autoResolveBufferedWritePromises) {
-                    this.options.batchWriteErrorHandler(e, e.data);
-                }
-            });
-        }, this.options.maximumWriteDelay);
     }
 
     scheduleFlush(onFlush, delay) {
@@ -157,19 +147,18 @@ class ConnectionImpl {
     }
 
     flush() {
-        // prevent sending empty requests to the db
-        if (this.writeBuffer.batchSize === 0) return Promise.resolve();
-        // from now on all writes will be redirected to a new buffer
+        const url = `${this.hostUrl}/write?db=${this.options.database}`;
+        const bodyBuffer = this.writeBuffer.stream.getContents();
         const flushedWriteBuffer = this.writeBuffer;
+        // prevent sending empty requests to the db
+        if (flushedWriteBuffer.batchSize === 0) return Promise.resolve();
+        // from now on all writes will be redirected to a new buffer
         this.writeBuffer = new WriteBuffer(this.schemas, this.options.autoGenerateTimestamps);
         // prevent repeated flush call if flush invoked before expiration timeout
         this.cancelFlushSchedule();
         // shutdown hook doesn't need to track this connection any more
         ConnectionTracker.stopTracking(this);
 
-        const url = `${this.hostUrl}/write?db=${this.options.database}`;
-
-        let bodyBuffer = flushedWriteBuffer.stream.getContents();
         //noinspection JSUnresolvedFunction - for RequestPromise.Request
         return new RequestPromise.Request({
             resolveWithFullResponse: true,
@@ -193,15 +182,23 @@ class ConnectionImpl {
                 }
                 catch (e) {
                 }
-                let error = new InfluxDBError(message, bodyBuffer.toString());
-                flushedWriteBuffer.rejectWritePromises(error);
-                return Promise.reject(error);
+                return this.onFlushError(flushedWriteBuffer, message, bodyBuffer.toString());
             }
         }).catch((e) => {
-            const error=new InfluxDBError(`Cannot write data to InfluxDB, reason: ${e.message}`);
-            flushedWriteBuffer.rejectWritePromises(error);
-            return Promise.reject(error);
+            const message=`Cannot write data to InfluxDB, reason: ${e.message}`;
+            return this.onFlushError(flushedWriteBuffer, message, bodyBuffer.toString());
         });
+    }
+
+    onFlushError(flushedWriteBuffer, message, data) {
+        const error=new InfluxDBError(message);
+        if (this.options.autoResolveBufferedWritePromises) {
+            this.options.batchWriteErrorHandler(error, data);
+        }
+        else {
+            flushedWriteBuffer.rejectWritePromises(error);
+        }
+        return Promise.reject(error);
     }
 
     executeQuery(query, database) {
@@ -289,7 +286,7 @@ class ConnectionImpl {
             });
         }
         else {
-            let result = this.executeInternalQuery('SHOW DATABASES').then((databases) => {
+            const result = this.executeInternalQuery('SHOW DATABASES').then((databases) => {
                 this.connected = this.doesDatabaseExists(databases);
                 this.disconnected = !this.connected;
                 if (!this.connected)
@@ -312,7 +309,7 @@ class ConnectionImpl {
     }
 
     disconnect() {
-        let result = this.flush();
+        const result = this.flush();
         this.connected = false;
         this.disconnected = true;
         return result;

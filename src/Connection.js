@@ -73,7 +73,7 @@ class Connection {
      *
      *
      * @param {DataPoint[]} dataPoints - an array of measurement points to write to InfluxDB
-     * @param {Boolean} [forceFlush=false] - if true the internal data point cache gets flushed into InfluxDB right away.
+     * @param {Boolean} [forceFlush=false] - if true the internal data point buffer gets flushed into InfluxDB right away.
      * @returns {Promise} - a promise that is evaluated when data is either written into InfluxDB or
      * an i/o error occurs.
      * @throws {InfluxDBError}

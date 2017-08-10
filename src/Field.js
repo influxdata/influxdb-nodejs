@@ -32,7 +32,7 @@
  */
 let FieldType = {
 
-    INTEGER: 0, FLOAT: 1, BOOLEAN: 2, STRING: 3
+    INTEGER: 1, FLOAT: 2, BOOLEAN: 3, STRING: 4
 
 };
 

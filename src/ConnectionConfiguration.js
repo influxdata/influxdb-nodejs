@@ -20,15 +20,15 @@
  *   * If false the timestamp will be filled in by the InfluxDB server
  * @property {Number} [batchSize=1000] Number of data points in a batch.
  *    Data points written into the InfluxDBConnection are
- *    buffered/cached in the connection until the batch size is
+ *    buffered in the connection until the batch size is
  *    reached or maximumWriteDelay is reached (see below.)
  *    To learn more about batching see {@link Connection.write}.
  * @property {Number} [maximumWriteDelay=1000] Maximum number of milliseconds
- *    the data point can be cached in the InfluxDBConnection.
+ *    the data point can be buffered in the InfluxDBConnection.
  *    When this limit is reached for a single data point written, any older data points are also written into InfluxDB.
  *    To learn more about batching see {@link Connection.write}.
  * @property {Boolean} [autoResolveBufferedWritePromises=true] if true the {@link Promise} returned by
- * {@link Connection.write} will be automatically resolved when the data are put into the batching cache. This is
+ * {@link Connection.write} will be automatically resolved when the data are put into the buffer. This is
  *  useful for larger batch sizes for performance reasons and to avoid pollution of log files (there will be just one
  *  error generated for the whole batch on the last accepted {@link Connection.write} invocation).
  *  If false the {@link Promise} returned by {@link Connection.write} will always get rejected or resolved when

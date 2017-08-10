@@ -1,136 +1,116 @@
-let assert = require('assert');
-let InfluxDB=require('../src/InfluxDB');
+const assert = require('assert');
+const InfluxDB = require('../src/InfluxDB');
+const connections = require('./utils/connection.js');
 
-describe('InfluxDB.Connection', function() {
-    describe('#connect()', function() {
-        it('should connect to DB', function (done) {
 
-            let connection = new InfluxDB.Connection({
-                database: 'for_otto',
-                username: 'otto',
-                password: 'noname',
-                autoCreateDatabase: false
-            });
+describe('Quick test of all main functions', () => {
 
-            /* Test against cloud
-             let connection = new InfluxDB.Connection({
-             hostUrl: 'https://futureboy-bf9e2f8a.influxcloud.net:8086',
-             username: 'admin',
-             password: 'changeit@123',
-             database: 'test1'
-             });*/
+    const connection = connections.getConnection('test1');
 
-            connection.connect().then((result) => {
-                done();
-            }).catch((e) => {
-                console.log('error', e);
-                done(e);
-            });
+    let dataPoint1 = {
+        measurement: 'outdoorThermometer',
+        timestamp: new Date(),
+        tags: {
+            location: 'greenhouse'
+        },
+        fields: {temperature: 23.7}
+    };
 
+    let dataPoint2 = {
+        measurement: 'outdoorThermometer',
+        timestamp: new Date().getTime() + 1000000,
+        tags: [{key: 'location', value: 'outdoor'}],
+        fields: [{key: 'temperature', value: 23.7}]
+    };
+
+    describe('#connect()', () => {
+        it('should connect to DB', (done) => {
+            connection.connect().then(done, done);
         });
 
-        it('should connect to DB with url ending with a slash', function (done) {
+        it('should connect to DB with url ending with a slash', (done) => {
             let connection = new InfluxDB.Connection({
                 database: 'test1',
                 hostUrl: 'http://localhost:8086/'
             });
+            connection.connect().then(done, done);
+        });
 
-            connection.connect().then((result) => {
+    });
+
+    describe('#write()', function () {
+        it('should flush written measurements to DB (with promise auto resolving)', (done) => {
+            connection.write([dataPoint1, dataPoint2]).then(() => {
+                console.log('written');
+            }, done);
+            connection.flush().then(() => {
+                console.log('flushed');
                 done();
-            }).catch((e) => {
-                console.log('error', e);
-                done(e);
-            });
-
+            }, done);
         });
-
     });
 
-    describe('#write()', function() {
-
-        it('should write measurements to DB', function (done) {
-
-            let connection = new InfluxDB.Connection({
-                database: 'test1'
-            });
-
-            connection.connect().then(() => {
-
-                let dataPoint1 = {
-                    measurement: 'outdoorThermometer',
-                    timestamp: new Date(),
-                    tags: {
-                        location: 'greenhouse'
-                    },
-                    fields: {temperature: 23.7}
-                };
-
-                let dataPoint2 = {
-                    measurement: 'outdoorThermometer',
-                    timestamp: new Date().getTime() + 1000000,
-                    tags: [{key: 'location', value: 'outdoor'}],
-                    fields: [{key: 'temperature', value: 23.7}]
-                };
-
-                connection.write([dataPoint1, dataPoint2]).then(()=>{ console.log('written');}).catch((e) => {
-                    console.log('errr',e);
-                    done(e);
-                });
-                connection.flush().then(() => {
-                    console.log('flushed');
+    describe('#executeQuery()', () => {
+        it('should read measurements from DB', (done) => {
+            connection.executeQuery('select * from outdoorThermometer group by location')
+                .then((result) => {
+                    console.log(result);
                     done();
-                }).catch((e) => {
-                    done(e);
-                });
-
-            }).catch((e) => {
-                console.log('error', e);
-                done(e);
-            });
-
+                }, done);
         });
     });
 
-    describe('#executeQuery()', function() {
-
-        it('should read measurements from DB', function(done) {
-
-            let connection=new InfluxDB.Connection({
-                database: 'test1'
-            });
-
-            connection.connect().then(()=>{
-                connection.executeQuery('select * from outdoorThermometer group by location').then((r) => {
-                    done()
-                }).catch((e) => {
-                    done(e);
-                });
-
-            }).catch((e)=>{
-                console.log('error',e);
-                done(e);
-            });
-
+    describe('#executeRawQuery()', () => {
+        it('should read measurements from DB in raw format', (done) => {
+            connection.executeRawQuery('select * from outdoorThermometer group by location')
+                .then((result) => {
+                    console.log(result);
+                    done();
+                }, done);
         });
-
-        it('should drop measurements from DB', function(done) {
-
-            let connection=new InfluxDB.Connection({
-                database: 'test1'
-            });
-
-            connection.connect().then(()=>{
-                connection.executeQuery('drop measurement outdoorThermometer').then((r) => {
-                    done()
-                }).catch((e) => {
-                    done(e);
-                });
-
-            }).catch((e)=>{
-                console.log('error',e);
-                done(e);
-            });
-        });
-
     });
+
+    describe('#disconnect()', () => {
+        it('no action should be taken after disconnect from DB', (done) => {
+            connection.disconnect();
+            const p1=connection.executeQuery('select * from outdoorThermometer group by location')
+                .then(() => { done(new Error('Should fail')); }).catch(()=>{});
+            const p2=connection.executeRawQuery('select * from outdoorThermometer group by location')
+                .then(() => { done(new Error('Should fail')); }).catch(()=>{});
+            const p3=connection.write([dataPoint1])
+                .then(() => { done(new Error('Should fail')); }).catch(()=>{});
+            Promise.all([p1, p2, p3]).then(() => {
+                done();
+            }, done);
+
+        });
+
+        it('disconnect after disconnect won\'t upset us', (done) => {
+            connection.disconnect().catch((e) => done(e));
+            connection.disconnect().then(() => {
+                connection.disconnect().then(done, done);
+            }, done);
+        });
+
+        it('everything should work fine after reconnect', (done) => {
+            connection.disconnect().then(() => {
+                connection.connect().then(() => {
+                    const p1 = connection.executeQuery('select * from outdoorThermometer group by location').then((result) => {
+                        console.log(result.length);
+                    }, done);
+                    const p2 = connection.executeRawQuery('select * from outdoorThermometer group by location').then(() => {}, done);
+                    const p3 = connection.write([dataPoint1]).then(() => {}, done);
+                    Promise.all([p1, p2, p3]).then(() => {
+                        done();
+                    }, done);
+                }, done)
+            }, done);
+        });
+        it('should drop measurements from DB', (done) => {
+            connection.flush().then(()=> {
+                connection.executeQuery('drop measurement outdoorThermometer').then(()=>{ done(); },done);
+            }, done);
+        });
+    });
+
 });
