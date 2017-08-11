@@ -126,30 +126,29 @@ class WriteBuffer {
       switch (userSpecifiedType) {
         case FieldType.STRING:
           WriteBuffer.validateType('string', typeof value, fieldName, dataPoint);
-          break;
+          return;
         case FieldType.BOOLEAN:
           WriteBuffer.validateType('boolean', typeof value, fieldName, dataPoint);
-          break;
+          return;
         case FieldType.FLOAT:
           WriteBuffer.validateType('number', typeof value, fieldName, dataPoint);
-          break;
+          return;
         case FieldType.INTEGER:
           WriteBuffer.validateType('number', typeof value, fieldName, dataPoint);
           WriteBuffer.validateInteger(value, fieldName, dataPoint);
-          break;
+          return;
         default:
-          throw new InfluxDBError(`Unsupported value type: ${typeof value}`);
       }
     } else {
       switch (typeof value) {
         case 'string':
         case 'boolean':
         case 'number':
-          break;
+          return;
         default:
-          throw new InfluxDBError(`Unsupported value type:${(typeof value)}`);
       }
     }
+    throw new InfluxDBError(`Unsupported value type:${(typeof value)}`);
   }
 
   static getUserSpecifiedType(schema, fieldKey) {
