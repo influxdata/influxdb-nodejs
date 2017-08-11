@@ -128,7 +128,7 @@ class ConnectionImpl {
             return Promise.resolve();
         }
         else {
-            return this.writeBuffer.buildPromiseToResolveOnFlush();
+            return this.writeBuffer.createPromiseToResolveOnFlush();
         }
     }
 
