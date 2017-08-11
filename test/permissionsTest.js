@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import assert from 'assert';
 import * as InfluxDB from '~/InfluxDB';
 import * as utils from './utils/utils.js';
+import * as InfluxDBServer from '~/../scripts/InfluxDBServer.js';
 
 describe('Permissions test', () => {
     // set up users and databases
@@ -76,7 +77,8 @@ describe('Permissions test', () => {
       const args = `http --version ${utils.testconf.influxdb.release} --admin admin --password noname`;
 
       console.log(`Using dynamic servers.  Reconfiguring and restarting influxdb server ${args}`);
-      utils.startDockerInfluxdb(args)
+//      utils.startDockerInfluxdb(args)
+      InfluxDBServer.startDocker(args)
         .catch((e) => { done(e); })
         .then(() => {
           console.log('Sleeping for 45 sec', new Date().getTime());
