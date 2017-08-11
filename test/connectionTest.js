@@ -181,24 +181,26 @@ describe('Connection test', () => {
     describe('autoResolveBufferedWritePromises - false', () => {
         const autoResolveWritesConnection = new InfluxDB.Connection({
             database: 'test1',
-            autoResolvePromisedWritesToCache: true,
+            autoResolveBufferedWritePromises: true,
+            maximumWriteDelay: 1000
         });
 
         const noAutoResolveWritesConnection = new InfluxDB.Connection({
             database: 'test1',
-            autoResolvePromisedWritesToCache: false,
+            autoResolveBufferedWritePromises: false,
+            maximumWriteDelay: 1000
         });
 
 
         const dataPoints = util.buildDatapoints('temp',
             [{name: 'thermometer', base: 'tmeter', type: 'string'}],
             [{name: 'cels', base: 17, type: 'float'}],
-            3000);
+            30);
 
         let autoWriteTime = 0;
         let start;
 
-        // get initial time of autoResolvePromisedWritesToCache: true for later comparison
+        // get initial time of autoResolveBufferedWritePromises: true for later comparison
         autoResolveWritesConnection.connect()
             .then(() => {
                 start = new Date().getTime();
@@ -230,10 +232,12 @@ describe('Connection test', () => {
                     const end = new Date().getTime();
                     waitWriteTime = end - waitStart;
                     console.log(`test ${util.pad(31, 10, '0')}`);
-                    console.log(`autoResolvePromisedWritesToCache(false) ${util.pad(waitWriteTime, 6, ' ')}ms`);
-                    console.log(`autoResolvePromisedWritesToCache(true)  ${util.pad(autoWriteTime, 6, ' ')}ms`);
-                    console.log(`autoResolvePromisedWritesToCache(diff)  ${util.pad(waitWriteTime - autoWriteTime, 6, ' ')}ms`);
+                    console.log(`autoResolveBufferedWritePromises(false) ${util.pad(waitWriteTime, 6, ' ')}ms`);
+                    console.log(`autoResolveBufferedWritePromises(true)  ${util.pad(autoWriteTime, 6, ' ')}ms`);
+                    console.log(`autoResolveBufferedWritePromises(diff)  ${util.pad(waitWriteTime - autoWriteTime, 6, ' ')}ms`);
                     assert(waitWriteTime > autoWriteTime);
+                    assert(waitWriteTime > autoWriteTime);
+                    assert(waitWriteTime > 1000);
                     done();
                 }, done);
         });

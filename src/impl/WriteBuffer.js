@@ -25,8 +25,10 @@ class WriteBuffer {
         this.writePromises = [];
     }
 
-    addWritePromiseToResolve(promise) {
-        this.writePromises.push(promise);
+    buildPromiseToResolveOnFlush() {
+        return new Promise((resolve, reject)=> {
+            this.writePromises.push({ resolve: resolve, reject: reject});
+        });
     }
 
     resolveWritePromises() {

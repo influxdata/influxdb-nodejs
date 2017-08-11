@@ -105,31 +105,30 @@ class ConnectionImpl {
         const timeoutLimitNotReached = this.writeBuffer.firstWriteTimestamp === null ||
             this.options.maximumWriteDelay > 0 &&
             (new Date().getTime() - this.writeBuffer.firstWriteTimestamp < this.options.maximumWriteDelay);
-        // assign the buffer the date of first use
-        if (this.writeBuffer.firstWriteTimestamp === null) this.writeBuffer.firstWriteTimestamp = new Date().getTime();
+
+        this.writeBuffer.write(dataPoints);
+
         if (batchSizeLimitNotReached && timeoutLimitNotReached && !forceFlush) {
             // just write into the buffer
-            return this.promiseBufferedWrite(dataPoints);
+            return this.promiseBufferedWrite();
         }
         else {
-            // write to InfluxDB now
-            this.writeBuffer.write(dataPoints);
+            // write to InfluxDB now, but serialize submitted data points first
             return this.flush();
         }
     }
 
-    promiseBufferedWrite(dataPoints) {
-        this.writeBuffer.write(dataPoints);
-        ConnectionTracker.startTracking(this);
-        this.scheduleFlush(() => { this.flush(); }, this.options.maximumWriteDelay);
-
+    promiseBufferedWrite() {
+        if (this.writeBuffer.firstWriteTimestamp === null) {
+            this.writeBuffer.firstWriteTimestamp = new Date().getTime();
+            ConnectionTracker.startTracking(this);
+            this.scheduleFlush(() => { this.flush(); }, this.options.maximumWriteDelay);
+        }
         if (this.options.autoResolveBufferedWritePromises) {
             return Promise.resolve();
         }
         else {
-            let promise = new Promise();
-            this.writeBuffer.addWritePromiseToResolve(promise);
-            return promise;
+            return this.writeBuffer.buildPromiseToResolveOnFlush();
         }
     }
 

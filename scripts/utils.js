@@ -92,10 +92,10 @@ function buildTags(tags, index, padd) {
  */
 function buildDatapoints(measurementName, tags, fields, count) {
   const dps = [];
-
+  const time=new Date().getTime();
   for (let i = 0; i < count; i += 1) {
     dps.push({ measurement: measurementName,
-      timestamp: new Date().getTime(),
+      timestamp: time+i,
       tags: buildTags(tags, i, Math.ceil(Math.log10(count))),
       fields: buildTags(fields, i),
     });
