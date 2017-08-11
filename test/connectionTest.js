@@ -35,28 +35,28 @@ describe('Connection test', () => {
 
     it('should read back and verify the data', (done) => {
       util.sleep(500)
-          .then(() => connection.executeQuery('Select * from location'))
-          .then((result) => {
-            assert.equal(result.length, 3);
-            result.forEach((dataPoint) => {
-              assert(dataPoint.time !== undefined);
-              switch (dataPoint.unit) {
-                case 'adam-12':
-                  assert.equal(dataPoint.coordinates, dataPoint1.fields[0].value);
-                  break;
-                case 'l-30':
-                  assert.equal(dataPoint.coordinates, dataPoint2.fields[0].value);
-                  break;
-                case 'zebra-07':
-                  assert.equal(dataPoint.coordinates, dataPoint3.fields[0].value);
-                  break;
-                default:
-                  assert.fail(dataPoint.unit, dataPoint.coordinates, 'Unexpected element in results array');
-                  break;
-              }
-            });
-            done();
-          }, done);
+        .then(() => connection.executeQuery('Select * from location'))
+        .then((result) => {
+          assert.equal(result.length, 3);
+          result.forEach((dataPoint) => {
+            assert(dataPoint.time !== undefined);
+            switch (dataPoint.unit) {
+              case 'adam-12':
+                assert.equal(dataPoint.coordinates, dataPoint1.fields[0].value);
+                break;
+              case 'l-30':
+                assert.equal(dataPoint.coordinates, dataPoint2.fields[0].value);
+                break;
+              case 'zebra-07':
+                assert.equal(dataPoint.coordinates, dataPoint3.fields[0].value);
+                break;
+              default:
+                assert.fail(dataPoint.unit, dataPoint.coordinates, 'Unexpected element in results array');
+                break;
+            }
+          });
+          done();
+        }, done);
     });
 
     it('should drop the measurement', (done) => {
@@ -77,14 +77,14 @@ describe('Connection test', () => {
     });
 
     const testDataPoints = util.buildDatapoints('distance',
-        [{ name: 'unit', base: 'baker-', type: 'string' }],
-        [{ name: 'frombase', base: 0, type: 'float' }],
-        300); // force buffer to flush three times in succession
+      [{ name: 'unit', base: 'baker-', type: 'string' }],
+      [{ name: 'frombase', base: 0, type: 'float' }],
+      300); // force buffer to flush three times in succession
     const chunkSize = 10;
     // will write in chunks of 10 items
     const dataPointChunks = testDataPoints
-        .map((e, i) => (i % chunkSize === 0 ? testDataPoints.slice(i, i + chunkSize) : null))
-        .filter(e => e);
+      .map((e, i) => (i % chunkSize === 0 ? testDataPoints.slice(i, i + chunkSize) : null))
+      .filter(e => e);
 
     it('should write successive chunks to buffer and trigger write to db', (done) => {
       connection.connect().then(() => {
@@ -99,10 +99,10 @@ describe('Connection test', () => {
 
     it('should read back the data', (done) => {
       connection.executeQuery('SELECT * FROM distance')
-          .then((result) => {
-            assert(result.length, testDataPoints.length);
-            done();
-          }, done);
+        .then((result) => {
+          assert(result.length, testDataPoints.length);
+          done();
+        }, done);
     });
 
     it('should drop the test measurement', (done) => {
@@ -145,32 +145,32 @@ describe('Connection test', () => {
 
     it('should write to db after delay expires', (done) => {
       connection.connect().then(() =>
-          connection.write([dataPoint1, dataPoint2, dataPoint3])).then(done, done);
+        connection.write([dataPoint1, dataPoint2, dataPoint3])).then(done, done);
     });
 
     it(`should read back the data after the delay of ${writeDelay}ms expires`, (done) => {
       connection.connect()
-          .then(() => util.sleep(writeDelay))
-          .then(() => connection.executeQuery('Select * from temperature'))
-          .then((result) => {
-            assert.equal(result.length, 3);
-            result.forEach((dataPoint) => {
-              switch (dataPoint.turbine) {
-                case 'bremerhaven-0013':
-                  assert.equal(dataPoint.celsius, dataPoint1.fields[0].value);
-                  break;
-                case 'bremerhaven-0017':
-                  assert.equal(dataPoint.celsius, dataPoint2.fields[0].value);
-                  break;
-                case 'bremerhaven-0019':
-                  assert.equal(dataPoint.celsius, dataPoint3.fields[0].value);
-                  break;
-                default:
-                  throw new Error('Unknown element in results array');
-              }
-            });
-            done();
-          }, done);
+        .then(() => util.sleep(writeDelay))
+        .then(() => connection.executeQuery('Select * from temperature'))
+        .then((result) => {
+          assert.equal(result.length, 3);
+          result.forEach((dataPoint) => {
+            switch (dataPoint.turbine) {
+              case 'bremerhaven-0013':
+                assert.equal(dataPoint.celsius, dataPoint1.fields[0].value);
+                break;
+              case 'bremerhaven-0017':
+                assert.equal(dataPoint.celsius, dataPoint2.fields[0].value);
+                break;
+              case 'bremerhaven-0019':
+                assert.equal(dataPoint.celsius, dataPoint3.fields[0].value);
+                break;
+              default:
+                throw new Error('Unknown element in results array');
+            }
+          });
+          done();
+        }, done);
     });
 
     it('should drop the test data', (done) => {
@@ -196,26 +196,26 @@ describe('Connection test', () => {
 
 
     const dataPoints = util.buildDatapoints('temp',
-        [{ name: 'thermometer', base: 'tmeter', type: 'string' }],
-        [{ name: 'cels', base: 17, type: 'float' }],
-        30);
+      [{ name: 'thermometer', base: 'tmeter', type: 'string' }],
+      [{ name: 'cels', base: 17, type: 'float' }],
+      30);
 
     let autoWriteTime = 0;
     let start;
 
     // get initial time of autoResolveBufferedWritePromises: true for later comparison
     autoResolveWritesConnection.connect()
-        .then(() => {
-          start = new Date().getTime();
-          return autoResolveWritesConnection.write(dataPoints);
-        })
-        .then(() => {
-          const end = new Date().getTime();
-          autoWriteTime = end - start;
-        })
-        .catch((e) => {
-          console.log('error', e);
-        });
+      .then(() => {
+        start = new Date().getTime();
+        return autoResolveWritesConnection.write(dataPoints);
+      })
+      .then(() => {
+        const end = new Date().getTime();
+        autoWriteTime = end - start;
+      })
+      .catch((e) => {
+        console.log('error', e);
+      });
 
     util.dropMeasurement(autoResolveWritesConnection, 'temp');
     // take a moment for transaction to complete
@@ -227,31 +227,31 @@ describe('Connection test', () => {
       let waitWriteTime = 0;
       let waitStart;
       noAutoResolveWritesConnection.connect()
-          .then(() => {
-            waitStart = new Date().getTime();
-            return noAutoResolveWritesConnection.write(dataPoints);
-          })
-          .then(() => {
-            const end = new Date().getTime();
-            waitWriteTime = end - waitStart;
-            console.log(`test ${util.pad(31, 10, '0')}`);
-            console.log(`autoResolveBufferedWritePromises(false) ${util.pad(waitWriteTime, 6, ' ')}ms`);
-            console.log(`autoResolveBufferedWritePromises(true)  ${util.pad(autoWriteTime, 6, ' ')}ms`);
-            console.log(`autoResolveBufferedWritePromises(diff)  ${util.pad(waitWriteTime - autoWriteTime, 6, ' ')}ms`);
-            assert(waitWriteTime > autoWriteTime);
-            assert(waitWriteTime > autoWriteTime);
-            assert(waitWriteTime > 1000);
-            done();
-          }, done);
+        .then(() => {
+          waitStart = new Date().getTime();
+          return noAutoResolveWritesConnection.write(dataPoints);
+        })
+        .then(() => {
+          const end = new Date().getTime();
+          waitWriteTime = end - waitStart;
+          console.log(`test ${util.pad(31, 10, '0')}`);
+          console.log(`autoResolveBufferedWritePromises(false) ${util.pad(waitWriteTime, 6, ' ')}ms`);
+          console.log(`autoResolveBufferedWritePromises(true)  ${util.pad(autoWriteTime, 6, ' ')}ms`);
+          console.log(`autoResolveBufferedWritePromises(diff)  ${util.pad(waitWriteTime - autoWriteTime, 6, ' ')}ms`);
+          assert(waitWriteTime > autoWriteTime);
+          assert(waitWriteTime > autoWriteTime);
+          assert(waitWriteTime > 1000);
+          done();
+        }, done);
     });
 
     it('should read the points back', (done) => {
       noAutoResolveWritesConnection.connect()
-          .then(() => noAutoResolveWritesConnection.executeQuery('select * from temp'))
-          .then((result) => {
-            assert(result.length === dataPoints.length);
-            done();
-          }, done);
+        .then(() => noAutoResolveWritesConnection.executeQuery('select * from temp'))
+        .then((result) => {
+          assert(result.length === dataPoints.length);
+          done();
+        }, done);
     });
 
     it('should drop the datapoints', (done) => {
@@ -297,45 +297,45 @@ describe('Connection test', () => {
 
     it('should fail to write to a non-existent database', (done) => {
       connectionToNonExistingDB.connect()
-          .then(() => connectionToNonExistingDB.write([testDataPoint]))
-          .then(() => connectionToNonExistingDB.flush())
-          .then(() => connectionToNonExistingDB.executeQuery('SHOW DATABASES'))
-          .then((result) => {
-            done(new Error(`No error on write to the nonexistant database ${nonExistingDB}. Current Databases are ${JSON.stringify(result)}`));
-          })
-          .catch((e) => {
-            console.log(e);
-            done();
-          });
+        .then(() => connectionToNonExistingDB.write([testDataPoint]))
+        .then(() => connectionToNonExistingDB.flush())
+        .then(() => connectionToNonExistingDB.executeQuery('SHOW DATABASES'))
+        .then((result) => {
+          done(new Error(`No error on write to the nonexistant database ${nonExistingDB}. Current Databases are ${JSON.stringify(result)}`));
+        })
+        .catch((e) => {
+          console.log(e);
+          done();
+        });
     });
 
     it('should write to an existing database', (done) => {
       noAutoCreateDB.connect()
-          .then(() => noAutoCreateDB.write([testDataPoint], true))
-          .then(done, done);
+        .then(() => noAutoCreateDB.write([testDataPoint], true))
+        .then(done, done);
     });
 
     it('should read back the data from the existing database', (done) => {
       util.sleep(500)
-          .then(() => noAutoCreateDB.connect())
-          .then(() => noAutoCreateDB.executeQuery('select * from flips'))
-          .then((result) => {
-            try {
-              assert(result.length > 0);
-              done();
-            } catch (e) {
-              done(e);
-            }
-          }, done);
+        .then(() => noAutoCreateDB.connect())
+        .then(() => noAutoCreateDB.executeQuery('select * from flips'))
+        .then((result) => {
+          try {
+            assert(result.length > 0);
+            done();
+          } catch (e) {
+            done(e);
+          }
+        }, done);
     });
 
     it('should drop the database just created', (done) => {
       // wait to make sure other operations have completed
       util.sleep(1000)
-          .then(() => autoCreateDB.connect())
-          .then(() => autoCreateDB.executeQuery(`DROP DATABASE ${existingDB}`)).then(() => {
-            done();
-          }, done);
+        .then(() => autoCreateDB.connect())
+        .then(() => autoCreateDB.executeQuery(`DROP DATABASE ${existingDB}`)).then(() => {
+          done();
+        }, done);
     });
   });
 
@@ -354,17 +354,17 @@ describe('Connection test', () => {
       };
 
       connection.connect()
-          .then(() => connection.write([testDataPoint]))
-          .then(() => util.sleep(500))
-          .then(() => connection.executeQuery('SELECT * FROM flips'))
-          .then((result) => {
-            try {
-              assert(result.length > 0);
-              done(util.dropMeasurement(connection, 'flips'));
-            } catch (e) {
-              done(e);
-            }
-          }, done);
+        .then(() => connection.write([testDataPoint]))
+        .then(() => util.sleep(500))
+        .then(() => connection.executeQuery('SELECT * FROM flips'))
+        .then((result) => {
+          try {
+            assert(result.length > 0);
+            done(util.dropMeasurement(connection, 'flips'));
+          } catch (e) {
+            done(e);
+          }
+        }, done);
     });
 
     it('should automatically write when minimumWriteDelay is 0', (done) => {
@@ -381,17 +381,17 @@ describe('Connection test', () => {
       };
 
       connection.connect()
-          .then(() => connection.write([testDataPoint]))
-          .then(() => util.sleep(500))
-          .then(() => connection.executeQuery('SELECT * FROM flops'))
-          .then((result) => {
-            try {
-              assert(result.length > 0);
-              done(util.dropMeasurement(connection, 'flops'));
-            } catch (e) {
-              done(e);
-            }
-          }, done);
+        .then(() => connection.write([testDataPoint]))
+        .then(() => util.sleep(500))
+        .then(() => connection.executeQuery('SELECT * FROM flops'))
+        .then((result) => {
+          try {
+            assert(result.length > 0);
+            done(util.dropMeasurement(connection, 'flops'));
+          } catch (e) {
+            done(e);
+          }
+        }, done);
     });
 
 

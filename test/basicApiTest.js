@@ -51,20 +51,20 @@ describe('Quick test of all main functions', () => {
   describe('#executeQuery()', () => {
     it('should read measurements from DB', (done) => {
       connection.executeQuery('select * from outdoorThermometer group by location')
-          .then((result) => {
-            console.log(result);
-            done();
-          }, done);
+        .then((result) => {
+          console.log(result);
+          done();
+        }, done);
     });
   });
 
   describe('#executeRawQuery()', () => {
     it('should read measurements from DB in raw format', (done) => {
       connection.executeRawQuery('select * from outdoorThermometer group by location')
-          .then((result) => {
-            console.log(result);
-            done();
-          }, done);
+        .then((result) => {
+          console.log(result);
+          done();
+        }, done);
     });
   });
 
@@ -72,20 +72,20 @@ describe('Quick test of all main functions', () => {
     it('no action should be taken after disconnect from DB', (done) => {
       connection.disconnect();
       const p1 = connection.executeQuery('select * from outdoorThermometer group by location')
-          .then(() => {
-            done(new Error('Should fail'));
-          }).catch(() => {
-          });
+        .then(() => {
+          done(new Error('Should fail'));
+        }).catch(() => {
+        });
       const p2 = connection.executeRawQuery('select * from outdoorThermometer group by location')
-          .then(() => {
-            done(new Error('Should fail'));
-          }).catch(() => {
-          });
+        .then(() => {
+          done(new Error('Should fail'));
+        }).catch(() => {
+        });
       const p3 = connection.write([dataPoint1])
-          .then(() => {
-            done(new Error('Should fail'));
-          }).catch(() => {
-          });
+        .then(() => {
+          done(new Error('Should fail'));
+        }).catch(() => {
+        });
       Promise.all([p1, p2, p3]).then(() => {
         done();
       }, done);

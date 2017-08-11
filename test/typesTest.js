@@ -95,44 +95,44 @@ describe('Test that types are converted/checked correctly when writing', () => {
       };
 
       connection.connect()
-          .then(() => connection.write([dPF1, dPF2, dPF3]))
-          .then(() => connection.flush())
-          .then(done, done);
+        .then(() => connection.write([dPF1, dPF2, dPF3]))
+        .then(() => connection.flush())
+        .then(done, done);
     });
 
     it('should verify the field type in Influx', (done) => {
       connection.connect()
-          .then(() => connection.executeQuery('SHOW FIELD KEYS'))
-          .then((result) => {
-            assert.equal(util.getFieldType(result, 'kwatts'), 'float');
-            done();
-          }, done);
+        .then(() => connection.executeQuery('SHOW FIELD KEYS'))
+        .then((result) => {
+          assert.equal(util.getFieldType(result, 'kwatts'), 'float');
+          done();
+        }, done);
     });
 
     it('should read back the float values', (done) => {
       connection.connect()
-          .then(() => connection.executeQuery('select * from powerf'))
-          .then((result) => {
-            assert.equal(result.length, 3);
-            result.forEach((elem) => {
-              switch (elem.location) {
-                case 'Turbine0017': // 49
-                  assert.equal(elem.kwatts, 49.0);
-                  break;
-                case 'Turbine0018': // 49.013
-                  assert.equal(elem.kwatts, 49.013);
-                  break;
-                case 'Turbine0019': // 5.009e+1
-                  assert.equal(elem.kwatts, 50.09);
-                  break;
-                default:
-                  assert.fail(elem.kwatts, elem.location,
-                      'unexpected element in results array', ',');
-                  break;
-              }
-            });
-            done();
-          }, done);
+        .then(() => connection.executeQuery('select * from powerf'))
+        .then((result) => {
+          assert.equal(result.length, 3);
+          result.forEach((elem) => {
+            switch (elem.location) {
+              case 'Turbine0017': // 49
+                assert.equal(elem.kwatts, 49.0);
+                break;
+              case 'Turbine0018': // 49.013
+                assert.equal(elem.kwatts, 49.013);
+                break;
+              case 'Turbine0019': // 5.009e+1
+                assert.equal(elem.kwatts, 50.09);
+                break;
+              default:
+                assert.fail(elem.kwatts, elem.location,
+                  'unexpected element in results array', ',');
+                break;
+            }
+          });
+          done();
+        }, done);
     });
 
     it('should drop the float values', (done) => {
@@ -164,45 +164,45 @@ describe('Test that types are converted/checked correctly when writing', () => {
       };
 
       connection.connect()
-          .then(() => connection.write([dPI1, dPI2, dPI3]))
-          .then(() => connection.flush())
-          .then(done, done);
+        .then(() => connection.write([dPI1, dPI2, dPI3]))
+        .then(() => connection.flush())
+        .then(done, done);
     });
 
     it('should verify the field type in Influx', (done) => {
       connection.connect()
-          .then(() => connection.executeQuery('SHOW FIELD KEYS'))
-          .then((result) => {
-            assert.equal(util.getFieldType(result, 'rpms'), 'integer');
-            done();
-          }, done);
+        .then(() => connection.executeQuery('SHOW FIELD KEYS'))
+        .then((result) => {
+          assert.equal(util.getFieldType(result, 'rpms'), 'integer');
+          done();
+        }, done);
     });
 
     it('should read back the integer values', (done) => {
       connection.connect()
-          .then(() => connection.executeQuery('select * from testint'))
-          .then((result) => {
-            assert.equal(result.length, 3);
-            result.forEach((dp) => {
-              switch (dp.location) {
-                case 'Turbine0017': // 49
-                  assert.equal(dp.rpms, 49);
-                  break;
-                case 'Turbine0018': // MAX_INT
-                  assert.equal(dp.rpms, Number.MAX_SAFE_INTEGER);
-                  break;
-                case 'Turbine0019': // MIN_INT
-                  assert.equal(dp.rpms, Number.MIN_SAFE_INTEGER);
-                  break;
-                default:
-                  assert.fail(dp.rpms, dp.location,
-                      'unexpected element in results array', ',');
-                  break;
-              }
-            });
-            done();
-          })
-          .catch(done);
+        .then(() => connection.executeQuery('select * from testint'))
+        .then((result) => {
+          assert.equal(result.length, 3);
+          result.forEach((dp) => {
+            switch (dp.location) {
+              case 'Turbine0017': // 49
+                assert.equal(dp.rpms, 49);
+                break;
+              case 'Turbine0018': // MAX_INT
+                assert.equal(dp.rpms, Number.MAX_SAFE_INTEGER);
+                break;
+              case 'Turbine0019': // MIN_INT
+                assert.equal(dp.rpms, Number.MIN_SAFE_INTEGER);
+                break;
+              default:
+                assert.fail(dp.rpms, dp.location,
+                  'unexpected element in results array', ',');
+                break;
+            }
+          });
+          done();
+        })
+        .catch(done);
     });
 
     it('should drop the integer values', (done) => {
@@ -234,47 +234,47 @@ describe('Test that types are converted/checked correctly when writing', () => {
 
     it('should write legitimate strings', (done) => {
       connection.connect()
-          .then(() => connection.write([stringDataPoint1, stringDataPoint2, stringDataPoint3]))
-          .then(() => connection.flush())
-          .then(() => {
-            done();
-          })
-          .catch(done);
+        .then(() => connection.write([stringDataPoint1, stringDataPoint2, stringDataPoint3]))
+        .then(() => connection.flush())
+        .then(() => {
+          done();
+        })
+        .catch(done);
     });
 
     it('should verify the field type in Influx', (done) => {
       connection.connect()
-          .then(() => connection.executeQuery('SHOW FIELD KEYS'))
-          .then((result) => {
-            assert.equal(util.getFieldType(result, 'status'), 'string');
-            done();
-          }, done);
+        .then(() => connection.executeQuery('SHOW FIELD KEYS'))
+        .then((result) => {
+          assert.equal(util.getFieldType(result, 'status'), 'string');
+          done();
+        }, done);
     });
 
     it('should read the strings back', (done) => {
       connection.connect()
-          .then(() => connection.executeQuery('select * from teststr'))
-          .then((result) => {
-            assert.equal(result.length, 3);
-            result.forEach((dp) => {
-              switch (dp.location) {
-                case 'Turbine0017':
-                  assert.equal(dp.status, 'OK');
-                  break;
-                case 'Turbine0018':
-                  assert.equal(dp.status, 'WARNING');
-                  break;
-                case 'Turbine0019':
-                  assert.equal(dp.status, 'OFFLINE');
-                  break;
-                default:
-                  assert.fail(dp.status, dp.location,
-                      'unexpected element in results array', ',');
-                  break;
-              }
-            });
-            done();
-          }, done);
+        .then(() => connection.executeQuery('select * from teststr'))
+        .then((result) => {
+          assert.equal(result.length, 3);
+          result.forEach((dp) => {
+            switch (dp.location) {
+              case 'Turbine0017':
+                assert.equal(dp.status, 'OK');
+                break;
+              case 'Turbine0018':
+                assert.equal(dp.status, 'WARNING');
+                break;
+              case 'Turbine0019':
+                assert.equal(dp.status, 'OFFLINE');
+                break;
+              default:
+                assert.fail(dp.status, dp.location,
+                  'unexpected element in results array', ',');
+                break;
+            }
+          });
+          done();
+        }, done);
     });
 
     it('should drop the datapoints', (done) => {
@@ -319,45 +319,45 @@ describe('Test that types are converted/checked correctly when writing', () => {
 
     it('should write booleans', (done) => {
       connection.connect()
-          .then(() => connection.write([boolDataPoint1, boolDataPoint2, boolDataPoint3,
-            boolDataPoint4, boolDataPoint5]))
-          .then(() => connection.flush()).then(done, done);
+        .then(() => connection.write([boolDataPoint1, boolDataPoint2, boolDataPoint3,
+          boolDataPoint4, boolDataPoint5]))
+        .then(() => connection.flush()).then(done, done);
     });
 
     it('should verify the field type in Influx', (done) => {
       connection.connect()
-          .then(() => connection.executeQuery('SHOW FIELD KEYS'))
-          .then((result) => {
-            assert.equal(util.getFieldType(result, 'online'), 'boolean');
-            done();
-          }).catch(done);
+        .then(() => connection.executeQuery('SHOW FIELD KEYS'))
+        .then((result) => {
+          assert.equal(util.getFieldType(result, 'online'), 'boolean');
+          done();
+        }).catch(done);
     });
 
     it('should read the booleans back', (done) => {
       connection.connect()
-          .then(() => connection.executeQuery('select * from testbool'))
-          .then((result) => {
-            assert.equal(result.length, 5);
-            result.forEach((dp) => {
-              switch (dp.location) {
-                case 'Turbine0001':
-                case 'Turbine0003':
-                case 'Turbine0007':
-                  assert.equal(dp.online, true);
-                  break;
-                case 'Turbine0002':
-                case 'Turbine0005':
-                  assert.equal(dp.online, false);
-                  break;
-                default:
-                  assert.fail(dp.status, dp.location,
-                      'unexpected element in results array', ',');
-                  break;
-              }
-            });
-            done();
-          })
-          .catch(done);
+        .then(() => connection.executeQuery('select * from testbool'))
+        .then((result) => {
+          assert.equal(result.length, 5);
+          result.forEach((dp) => {
+            switch (dp.location) {
+              case 'Turbine0001':
+              case 'Turbine0003':
+              case 'Turbine0007':
+                assert.equal(dp.online, true);
+                break;
+              case 'Turbine0002':
+              case 'Turbine0005':
+                assert.equal(dp.online, false);
+                break;
+              default:
+                assert.fail(dp.status, dp.location,
+                  'unexpected element in results array', ',');
+                break;
+            }
+          });
+          done();
+        })
+        .catch(done);
     });
 
     it('should drop the datapoints', (done) => {

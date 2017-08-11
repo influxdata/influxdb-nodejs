@@ -54,29 +54,29 @@ describe('HTTPS server test', () => {
   });
 
   const dps = utils.buildDatapoints('wetbulb',
-      [{ name: 'locale', base: 'a', type: 'string' }],
-      [{ name: 'celsius', base: 18, type: 'float' }],
-      30);
+    [{ name: 'locale', base: 'a', type: 'string' }],
+    [{ name: 'celsius', base: 18, type: 'float' }],
+    30);
 
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
   it('#should write and read datapoints over https', (done) => {
     connection.connect()
-        .then(() => connection.write(dps))
-        .then(() => connection.flush())
-        .then(() => connection.executeQuery('select * from wetbulb'))
-        .then((result) => {
-          try {
-            assert(result.length, dps.length);
-            done(utils.dropMeasurement(connection, 'wetbulb'));
-          } catch (e) {
-            utils.dropMeasurement(connection, 'wetbulb');
-            done(e);
-          }
-        })
-        .catch((e) => {
-          failed = true;
+      .then(() => connection.write(dps))
+      .then(() => connection.flush())
+      .then(() => connection.executeQuery('select * from wetbulb'))
+      .then((result) => {
+        try {
+          assert(result.length, dps.length);
+          done(utils.dropMeasurement(connection, 'wetbulb'));
+        } catch (e) {
+          utils.dropMeasurement(connection, 'wetbulb');
           done(e);
-        });
+        }
+      })
+      .catch((e) => {
+        failed = true;
+        done(e);
+      });
   });
 });
