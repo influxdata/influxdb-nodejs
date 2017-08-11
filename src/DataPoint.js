@@ -6,18 +6,20 @@
  * @public
  * @typedef {Object} DataPoint
  * @property {String} measurement Name of the measurement
- * @property {?(Date|String|Number)} timestamp=undefined timestamp of the measurement point. You can pass the following
- *   type of values:
+ * @property {?(Date|String|Number)} timestamp=undefined timestamp of the measurement point. You can
+ *   pass the following type of values:
  *   * Date - a JavaScript date object (it is millisecond-precision)
  *   * Number - millisecond-precision Unix time
- *   * String - nanosecond-precision Unix time as a string. See https://github.com/sazze/node-nanotime if you need to
- *            generate these in Node.js
- * @property {Tag[]|Object} tags Tags to be stored together with the data point. Two formats are supported:
- *    * either an array of objects with key/value properties (see the example below) or an object where its property
- *      keys serve as tag keys and object property values as tag values
- * @property {Field[]|Object} fields Fields to be stored together with the data point. Two formats are supported:
- *    * either an array of objects with key/value properties (see the example below) or an object where its property
- *      keys serve as field keys and object property values as field values
+ *   * String - nanosecond-precision Unix time as a string.
+ *            See https://github.com/sazze/node-nanotime if you need to generate these in Node.js
+ * @property {Tag[]|Object} tags Tags to be stored together with the data point. Two formats
+ *    are supported:
+ *    * either an array of objects with key/value properties (see the example below) or an object
+ *      where its property keys serve as tag keys and object property values as tag values
+ * @property {Field[]|Object} fields Fields to be stored together with the data point. Two formats
+ *    are supported:
+ *    * either an array of objects with key/value properties (see the example below) or an object
+ *      where its property keys serve as field keys and object property values as field values
  *
  * @example
  * let dataPoint1={
