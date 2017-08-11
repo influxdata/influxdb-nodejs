@@ -11,7 +11,6 @@ import FieldType from '~/Field';
  * @ignore
  */
 class WriteBuffer {
-
   constructor(schemas, autoGenerateTimestamps) {
     this.schemas = schemas;
     this.autoGenerateTimestamps = autoGenerateTimestamps;

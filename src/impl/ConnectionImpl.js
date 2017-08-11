@@ -11,7 +11,6 @@ import DefaultConnectionOptions from '~/impl/DefaultConnectionOptions';
  * @ignore
  */
 class ConnectionImpl {
-
   constructor(options) {
     this.schemas = {};
     this.options = ConnectionImpl.calculateOptions(options);
@@ -51,11 +50,11 @@ class ConnectionImpl {
   static prepareSchemas(schemas) {
     if (schemas) {
       const data = _.map(schemas, schema =>
-          ({
-            measurement: schema.measurement,
-            schema: _.cloneDeep(schema),
-            tagsDictionary: _.groupBy(schema.tags),
-          }));
+        ({
+          measurement: schema.measurement,
+          schema: _.cloneDeep(schema),
+          tagsDictionary: _.groupBy(schema.tags),
+        }));
       return _.keyBy(data, 'measurement');
     }
     return {};
@@ -89,7 +88,7 @@ class ConnectionImpl {
       }
       if (dataPoints.length === 0) return this.writeEmptySetOfPoints(forceFlush);
       return this.whenConnected(() =>
-          this.writeWhenConnectedAndInputValidated(dataPoints, forceFlush));
+        this.writeWhenConnectedAndInputValidated(dataPoints, forceFlush));
     } catch (e) {
       return Promise.reject(e);
     }
@@ -232,7 +231,7 @@ class ConnectionImpl {
       const error = new InfluxDBError(`HTTP ${result.statusCode} communication error`);
       return Promise.reject(error);
     }).catch(
-        e => Promise.reject(new InfluxDBError(`Cannot read data from InfluxDB, reason: ${e.message}`)));
+      e => Promise.reject(new InfluxDBError(`Cannot read data from InfluxDB, reason: ${e.message}`)));
   }
 
   static postProcessQueryResults(results) {
@@ -289,7 +288,7 @@ class ConnectionImpl {
         this.connected = true;
         this.disconnected = false;
       }).catch(e => Promise.reject(
-          new InfluxDBError(`Unable to contact InfluxDB, ping operation on '${url}' failed, reason: ${e.message}`)),
+        new InfluxDBError(`Unable to contact InfluxDB, ping operation on '${url}' failed, reason: ${e.message}`)),
       );
     });
     return result;

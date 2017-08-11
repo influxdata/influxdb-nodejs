@@ -6,7 +6,6 @@ import ConnectionImpl from '~/impl/ConnectionImpl';
  * @public
  */
 class Connection {
-
   /**
    * Create new Connection object. To verify that everything is set correctly,
    * call the {@link Connection#connect} method

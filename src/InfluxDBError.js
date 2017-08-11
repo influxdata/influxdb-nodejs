@@ -4,7 +4,6 @@
  * @property
  */
 class InfluxDBError extends Error {
-
   /**
    * @param {String} message Information about the error
    * @param {String} [data] Holds data points formatted using InfluxDB line protocol that were not
@@ -14,7 +13,6 @@ class InfluxDBError extends Error {
     super(message);
     this.data = data;
   }
-
 }
 
 export default InfluxDBError;

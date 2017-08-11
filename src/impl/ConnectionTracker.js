@@ -6,7 +6,6 @@ import * as _ from 'lodash';
  * @ignore
  */
 class ConnectionTracker {
-
   constructor() {
     this.activeConnections = {};
     this.connectionIdGenerator = 0;
