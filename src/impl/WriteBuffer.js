@@ -1,8 +1,8 @@
-import * as streamBuffers from 'stream-buffers';
+import * as StreamBuffers from 'stream-buffers';
+import * as _ from 'lodash';
 
 import InfluxDBError from '~/InfluxDBError';
 import {FieldType} from '~/Field';
-import * as _ from 'lodash';
 
 /**
  * Represents a single data point batch buffer written into into the database. It provides a write method to add
@@ -15,13 +15,12 @@ class WriteBuffer {
     constructor(schemas, autoGenerateTimestamps) {
         this.schemas = schemas;
         this.autoGenerateTimestamps = autoGenerateTimestamps;
-        this.stream = new streamBuffers.WritableStreamBuffer();
+        this.stream = new StreamBuffers.WritableStreamBuffer();
         this.firstWriteTimestamp = null;
         this.batchSize = 0;
-        // stores promises for writes that are buffered so that these are resolved/rejected when the
-        // buffer is flushed. The values are arrays of resolve/reject function of the promise:
-        // [resolve function, reject function]
-        // The RESOLVE and REJECT variables can be used as index to get either the resolve or reject function
+        // stores promise resolve/reject functions for writes that are buffered so that these write promises
+        // are resolved/rejected when the buffer is flushed. The values are objects with resolve/reject properties
+        // holding the the promise reject/resolve functions
         this.writePromises = [];
     }
 
