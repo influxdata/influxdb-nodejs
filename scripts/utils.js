@@ -1,4 +1,5 @@
-import exec from 'child_process';
+// import exec from 'child_process';
+const cproc = require('child_process');
 import testconf from '~/../etc/testconf.json';
 
 // const exec = require('child_process').exec;
@@ -122,29 +123,37 @@ function pad(n, width, z) {
  *       * --name NAME of the container - default 'influxdb'
  */
 function startDockerInfluxdb(args) {
-  const pyArgs = [`${__dirname}/../scripts/test-server.py`, args];
+  // const pyArgs = [`${__dirname}/../scripts/test-server.py`, args];
 
-  console.log(`(re)starting influxbd docker container ${pyArgs}`);
+  console.log(`(re)starting influxbd docker container ${__dirname}/../scripts/test-server.py ${args}`);
+
+  const result = new Promise((resolve, reject) => {
 
     // dockerProcess = exec('python3', pyArgs)
 //    dockerProcess = exec(`${__dirname}/../scripts/test-server.py ${args}`)
-  dockerProcess = exec(`${__dirname}/../scripts/test-server.py https`);
+    dockerProcess = cproc.exec(`${__dirname}/../scripts/test-server.py ${args}`);
 
-  let stdout = '';
-  dockerProcess.stdout.on('data', (data) => {
-    stdout += data.toString();
-  });
+    let stdout = '';
+    dockerProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
 
-  dockerProcess.on('close', () => {
-    console.log('docker process closed ', stdout);
-  });
+    dockerProcess.on('close', (code) => {
+      console.log('docker process closed ', stdout);
+      if (code !== 0){
+        reject(new Error(`Child processes ended with ${code}`));
+      }
+    });
 
     // wait a 30 secs for server to start
-  console.log('Waiting 30 seconds for influxdb server to start');
-  sleep(30000).then(() => {
-        // console.log('STDOUT ' + stdout)
-    console.log(`started influxdb server with args ${args}`);
+    console.log('Waiting 30 seconds for influxdb server to start');
+    sleep(30000).then(() => {
+          // console.log('STDOUT ' + stdout)
+      console.log(`started influxdb server with args ${args}`);
+      resolve('restarted influxdb');
+    });
   });
+  return result;
 }
 
 module.exports = { getFieldType,
