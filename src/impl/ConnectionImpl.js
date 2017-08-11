@@ -13,7 +13,8 @@ import DefaultConnectionOptions from '~/impl/DefaultConnectionOptions';
 class ConnectionImpl {
   constructor(options) {
     this.schemas = {};
-    this.options = ConnectionImpl.calculateOptions(options);
+    ConnectionImpl.validateteOptions(options);
+    this.options = ConnectionImpl.prepareOptions(options);
     ConnectionImpl.validateSchemas(options.schema);
     this.schemas = ConnectionImpl.prepareSchemas(options.schema);
     // for convenience of the user ignore a slash at the end of the URL
@@ -60,9 +61,12 @@ class ConnectionImpl {
     return {};
   }
 
-  static calculateOptions(options) {
-    const results = {};
+  static validateteOptions(options) {
     if (!options.database) throw new InfluxDBError("'database' option must be specified");
+  }
+
+  static prepareOptions(options) {
+    const results = {};
     Object.assign(results, DefaultConnectionOptions);
     Object.assign(results, options);
     return results;
