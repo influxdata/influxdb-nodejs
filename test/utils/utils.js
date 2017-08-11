@@ -109,7 +109,7 @@ function startDockerInfluxdb(args) {
 
     // dockerProcess = exec('python3', pyArgs)
 //    dockerProcess = exec(`${__dirname}/../scripts/test-server.py ${args}`)
-    dockerProcess = cproc.exec(`${__dirname}/../scripts/test-server.py ${args}`);
+    dockerProcess = cproc.exec(`${__dirname}/../../scripts/test-server.py ${args}`);
 
     let stdout = '';
     dockerProcess.stdout.on('data', (data) => {
@@ -121,14 +121,14 @@ function startDockerInfluxdb(args) {
       if (code !== 0){
         reject(new Error(`Child processes ended with ${code}`));
       }
-    });
 
-    // wait a 30 secs for server to start
-    console.log('Waiting 30 seconds for influxdb server to start');
-    sleep(30000).then(() => {
-          // console.log('STDOUT ' + stdout)
-      console.log(`started influxdb server with args ${args}`);
-      resolve('restarted influxdb');
+       // wait a 30 secs for server to start
+      console.log('Waiting 30 seconds for influxdb server to start');
+      sleep(30000).then(() => {
+      // console.log('STDOUT ' + stdout)
+        console.log(`started influxdb server with args ${args}`);
+        resolve('restarted influxdb');
+      });
     });
   });
   return result;

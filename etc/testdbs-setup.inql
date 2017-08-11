@@ -1,0 +1,11 @@
+CREATE USER otto WITH PASSWORD 'noname'
+CREATE USER helmut WITH PASSWORD 'noname'
+CREATE USER sahra WITH PASSWORD 'noname'
+CREATE DATABASE ecurrentsdb
+CREATE DATABASE secretdb
+--GRANT ALL PRIVILEGES TO admin
+REVOKE ALL ON ecurrentsdb FROM sahra
+REVOKE ALL ON ecurrentsdb FROM helmut
+GRANT ALL ON ecurrentsdb TO otto
+GRANT READ ON ecurrentsdb TO sahra
+
