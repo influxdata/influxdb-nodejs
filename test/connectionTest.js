@@ -303,8 +303,8 @@ describe('Connection test', () => {
         .then((result) => {
           done(new Error(`No error on write to the nonexistant database ${nonExistingDB}. Current Databases are ${JSON.stringify(result)}`));
         })
-        .catch((e) => {
-          console.log(e);
+        .catch(() => {
+          // console.log(e);
           done();
         });
     });
