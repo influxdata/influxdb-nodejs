@@ -4,7 +4,8 @@
  * @public
  * @typedef {Object} InfluxDB
  * @property {Connection} Connection reference to the {@link Connection} object
- * @property {FieldType} FieldType reference to the {@link FieldType} object, used to define measurement schemas
+ * @property {FieldType} FieldType reference to the {@link FieldType} object, used to define
+ *   measurement schemas
  *
  * @example
  * const InfluxDB=require('influxdb-nodejs');
@@ -21,7 +22,7 @@
 /**
  * @ignore
  */
-import {FieldType} from '~/Field';
+import FieldType from '~/Field';
 /**
  * @ignore
  */
@@ -31,4 +32,4 @@ import Connection from '~/Connection';
  */
 import InfluxDBError from '~/InfluxDBError';
 
-export {Connection, FieldType, InfluxDBError};
+export { Connection, FieldType, InfluxDBError };

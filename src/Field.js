@@ -1,11 +1,13 @@
 /**
- * Field is a key-value pair in InfluxDB’s data structure that records metadata and the actual data value.
+ * Field is a key-value pair in InfluxDB’s data structure that records metadata and the actual
+ * data value.
  * See: https://docs.influxdata.com/influxdb/latest/concepts/glossary/#field
  *
  * @public
  * @typedef {Object} Field
  * @property {String} key The key part of the key-value pair that makes up a field.
- * @property {(String|Number|Boolean)} value The value part of the key-value pair that makes up a field.
+ * @property {(String|Number|Boolean)} value The value part of the key-value pair that makes up
+ *   a field.
  *
  * @example
  * let field={
@@ -30,13 +32,11 @@
  *   }
  * }
  */
-let FieldType = {
-
-    INTEGER: 1, FLOAT: 2, BOOLEAN: 3, STRING: 4
-
+const FieldType = {
+  INTEGER: 1, FLOAT: 2, BOOLEAN: 3, STRING: 4,
 };
 
-export {FieldType};
+export default FieldType;
 
 
 /**
@@ -44,20 +44,20 @@ export {FieldType};
  *
  * It's recommended, but not required to use a schema; it is used to:
  *
- *    * Coerce your data (properly converting JavaScript Number to either floats or integers that are available
- *      in InfluxDB)
- *    * Provide immediate error feedback if data supplied to the {@Connection#write} method are not compliant
- *      with the schema. An error is signaled when there is a field/tag which is not present in your schema,
- *      or the data type of a field does not match the schema.
+ *    * Coerce your data (properly converting JavaScript Number to either floats or integers that
+ *      are available in InfluxDB)
+ *    * Provide immediate error feedback if data supplied to the {@Connection#write} method are not
+ *      compliant with the schema. An error is signaled when there is a field/tag which is not
+ *      present in your schema, or the data type of a field does not match the schema.
  *
  * See {@link FieldType} for available field types.
  *
  * @typedef {Object} Schema
  * @property {String} measurement Name of the measurement
- * @property {Object[]} [fields] Field names and their corresponding types for the given measurement. If left undefined
- *     no field validation will be executed.
- * @property {String[]} [tags] List of allowed tag names for the measurement. If left undefined no tag validation
- *     will be executed.
+ * @property {Object[]} [fields] Field names and their corresponding types for the given
+ *     measurement. If left undefined no field validation will be executed.
+ * @property {String[]} [tags] List of allowed tag names for the measurement. If left undefined no
+ *     tag validation will be executed.
  * @example
  * const schema = {
  *   measurement: 'my_measurement',

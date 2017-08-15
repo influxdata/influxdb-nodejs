@@ -1,7 +1,7 @@
 // import exec from 'child_process';
 import testconf from '~/../etc/testconf.json';
 
-console.log(testconf);
+console.log('Configuration used', testconf);
 
 function getFieldType(fields, fieldname) {
   const match = fields.find(f => f.fieldKey === fieldname);
@@ -17,7 +17,8 @@ function sleep(ms) {
 
 function dropMeasurement(connection, measurement) {
   connection.connect().then(() => {
-    connection.executeQuery(`DROP MEASUREMENT ${measurement}`).then(() => {}).catch(e => e);
+    connection.executeQuery(`DROP MEASUREMENT ${measurement}`).then(() => {
+    }).catch(e => e);
   }).catch(e => e);
 }
 
