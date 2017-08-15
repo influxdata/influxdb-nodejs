@@ -1,6 +1,6 @@
 import assert from 'assert';
 import * as InfluxDB from '~/InfluxDB'
-import * as utils from '~/../scripts/utils'
+import * as utils from '~/../test/utils/utils'
 
 
 describe('HTTPS server test', () => {

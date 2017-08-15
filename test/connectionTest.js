@@ -1,7 +1,7 @@
 /* global describe it */
 import assert from 'assert';
 import * as InfluxDB from '~/InfluxDB';
-import * as util from '~/../scripts/utils';
+import * as util from '~/../test/utils/utils';
 
 describe('Connection test', () => {
     describe('Automatic connect and write', () => {

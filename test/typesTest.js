@@ -1,6 +1,6 @@
 import assert from 'assert';
 import * as InfluxDB from '~/InfluxDB'
-import * as util from '~/../scripts/utils'
+import * as util from '~/../test/utils/utils'
 
 describe('Test that types are converted/checked correctly when writing', () => {
     const connection = new InfluxDB.Connection({
