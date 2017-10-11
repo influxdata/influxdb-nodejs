@@ -32,61 +32,60 @@ You may [check the reference documentation as well.](https://dubsky.bitbucket.io
         database: 'mydb'
     });
 
+    // the connect call below is optional; if you won't do it, connection
+    // will be initiated on the first read/write from/to InfluxDB
     connection.connect().then(() => {
        console.log('Connection established successfully');
     }).catch((e) => {
        console.error('Unexpected Error',e);
     });
 ```
+
 #### Write to a database
 
 ```javascript
-    connection.connect().then(() => {
+    const dataPoint1 = {
+        measurement : 'outdoorThermometer',
+        timestamp: new Date(),
+        tags: {
+            location: 'greenhouse' },
+            fields: { temperature: 23.7 }
+    };
 
-        const dataPoint1 = {
-            measurement : 'outdoorThermometer',
-            timestamp: new Date(),
-            tags: {
-                location: 'greenhouse' },
-                fields: { temperature: 23.7 }
-        };
+    // you can also provide tag and field data as arrays of objects:
+    const dataPoint2 = {
+        measurement : 'outdoorThermometer',
+        timestamp: new Date().getTime()+1000000,
+        tags: [ 
+            { 
+                key: 'location', 
+                value: 'outdoor' 
+            }
+        ],
+        fields: [ 
+            { 
+                key: 'temperature', 
+                value: 23.7 
+            } 
+        ]
+    };
 
-        // you can also provide tag and field data as arrays of objects:
-        const dataPoint2 = {
-            measurement : 'outdoorThermometer',
-            timestamp: new Date().getTime()+1000000,
-            tags: [ 
-                { 
-                    key: 'location', 
-                    value: 'outdoor' 
-                }
-            ],
-            fields: [ 
-                { 
-                    key: 'temperature', 
-                    value: 23.7 
-                } 
-            ]
-        };
-
-        const series = [dataPoint1, dataPoint2];
-        connection.write(series).catch(console.error);
-        
-        connection.flush().then(() => {
-            console.log('Data written into InfluxDB')
-        }).catch(console.error);
-
+    const series = [dataPoint1, dataPoint2];
+    connection.write(series).catch(console.error);
+    
+    // if you need to, you may enforce emptying write buffers between
+    // your application and InfluxDB
+    connection.flush().then(() => {
+        console.log('Data written into InfluxDB')
     }).catch(console.error);
+
 ```
 
 #### Read from a database
 
 ```javascript
-    connection.connect().then(() => {
-        connection.executeQuery('select * from outdoorThermometer group by location').then((result) => {
-            console.log(result);
-        }).catch(console.error);
-
+    connection.executeQuery('select * from outdoorThermometer group by location').then((result) => {
+        console.log(result);
     }).catch(console.error);
 ```
 
@@ -98,12 +97,10 @@ You may [check the reference documentation as well.](https://dubsky.bitbucket.io
         database: 'mydb'
     });
 
-    connection.connect().then(()=>{
-        connection.executeQuery('drop measurement outdoorThermometer').then(() => {
-          console.log('Measurement dropped');
-        }).catch(console.error);
-
+    connection.executeQuery('drop measurement outdoorThermometer').then(() => {
+      console.log('Measurement dropped');
     }).catch(console.error);
+
 ```
 
 [//]: # (* Summary of set up)
