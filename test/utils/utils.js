@@ -1,7 +1,5 @@
-import exec from 'child_process';
+// import exec from 'child_process';
 import testconf from '~/../etc/testconf.json';
-
-let dockerProcess;
 
 console.log('Configuration used', testconf);
 
@@ -90,45 +88,11 @@ function pad(n, width, z) {
   return nn.length >= width ? n : new Array(width - (nn.length + 1)).join(zz) + n;
 }
 
-/**
- * @param args - array of arguments to the python script
- *    valid arguments:
- *       * http || https
- *       * --version VERSION version of influxdb to pull - default 'latest'
- *       * --admin ADMIN admin user name
- *       * --password PASSWORD admin password
- *       * --nopull NOPULL do not pull new image
- *       * --name NAME of the container - default 'influxdb'
- */
-function startDockerInfluxdb(args) {
-  const pyArgs = [`${__dirname}/../scripts/test-server.py`, args];
-
-  console.log(`(re)starting influxbd docker container ${pyArgs}`);
-  dockerProcess = exec(`${__dirname}/../scripts/test-server.py https`);
-
-  let stdout = '';
-  dockerProcess.stdout.on('data', (data) => {
-    stdout += data.toString();
-  });
-
-  dockerProcess.on('close', () => {
-    console.log('docker process closed ', stdout);
-  });
-
-  // wait a 30 secs for server to start
-  console.log('Waiting 30 seconds for influxdb server to start');
-  sleep(30000).then(() => {
-    // console.log('STDOUT ' + stdout)
-    console.log(`started influxdb server with args ${args}`);
-  });
-}
-
 module.exports = {
   getFieldType,
   dropMeasurement,
   buildDatapoints,
   sleep,
   pad,
-  startDockerInfluxdb,
   testconf,
 };

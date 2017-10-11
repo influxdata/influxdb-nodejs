@@ -3,7 +3,7 @@ import assert from 'assert';
 import * as _ from 'lodash';
 
 import * as InfluxDB from '~/InfluxDB';
-import * as util from '~/../scripts/utils';
+import * as util from '~/../test/utils/utils';
 
 describe('Connection test', () => {
   describe('Automatic connect and write', () => {
@@ -303,8 +303,8 @@ describe('Connection test', () => {
         .then((result) => {
           done(new Error(`No error on write to the nonexistant database ${nonExistingDB}. Current Databases are ${JSON.stringify(result)}`));
         })
-        .catch((e) => {
-          console.log(e);
+        .catch(() => {
+          // console.log(e);
           done();
         });
     });
