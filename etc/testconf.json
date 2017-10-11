@@ -1,0 +1,6 @@
+{
+  "dynamic": false,
+  "influxdb": {
+     "release": "latest"
+  }
+}
