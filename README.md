@@ -1,2 +1,2 @@
 # influxdb-nodejs
-InfluxDB client library for NodeJS
+Please see https://github.com/influxdata/influxdb-client-js
